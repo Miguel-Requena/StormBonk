@@ -13,7 +13,7 @@ public class MeleeHunter : MonoBehaviour
     }
     void Start()
     {
-        target = GameObject.Find("Triangle").transform;
+        target = GameObject.Find("Player").transform;
     }
 
     // Update is called once per frame
