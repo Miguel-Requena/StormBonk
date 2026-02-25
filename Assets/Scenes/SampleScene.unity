@@ -133,7 +133,7 @@ GameObject:
   - component: {fileID: 265290206}
   m_Layer: 0
   m_Name: MeleeHunter
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -246,8 +246,8 @@ Transform:
   m_GameObject: {fileID: 265290205}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.06, y: -1.45, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0.0617, y: -1.3572, z: 0}
+  m_LocalScale: {x: 1.3804635, y: 1.2898251, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -487,7 +487,7 @@ GameObject:
   - component: {fileID: 765993501}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -560,8 +560,8 @@ Transform:
   m_GameObject: {fileID: 765993498}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.3, y: -0.15, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 1.9, y: 1.332, z: 0}
+  m_LocalScale: {x: 1.6249686, y: 1.8151286, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -579,6 +579,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Movement
   speed: 3
+  fireballPrefab: {fileID: 1216045470618574518, guid: 2e0489564d0b3ee458f7256479d90afa, type: 3}
+  fireForce: 15
+  fireRate: 1
 --- !u!50 &765993502
 Rigidbody2D:
   serializedVersion: 5
