@@ -1,13 +1,19 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
+using UnityEngine.UI; // ‚Üê ¬°NUEVO! Para la UI del enemigo
 
 public class MeleeHunter : MonoBehaviour
 {
-    [Header("EstadÌsticas del Enemigo")]
+    [Header("Estad√≠sticas del Enemigo")]
     public float moveSpeed = 2f;
-    public int health = 10;
-    public int damageToPlayer = 10; // DaÒo que le hace al jugador
-    public int pointsToGive = 5;    // Puntos que da al morir
-    public float damageRate = 1f;   // Cada cu·ntos segundos te hace daÒo si te est· tocando
+    public int maxHealth = 10;
+    private int currentHealth;
+
+    public int damageToPlayer = 10;
+    public int pointsToGive = 5;
+    public float damageRate = 1f;
+
+    [Header("Interfaz (UI)")]
+    public Slider healthBar; // ‚Üê ¬°NUEVO! Barra de vida encima de su cabeza
 
     private float nextDamageTime = 0f;
     private Rigidbody2D rb;
@@ -21,6 +27,15 @@ public class MeleeHunter : MonoBehaviour
 
     void Start()
     {
+        currentHealth = maxHealth;
+
+        // Configuramos su barrita de vida al nacer
+        if (healthBar != null)
+        {
+            healthBar.maxValue = maxHealth;
+            healthBar.value = currentHealth;
+        }
+
         GameObject player = GameObject.Find("Player");
         if (player != null)
         {
@@ -30,7 +45,6 @@ public class MeleeHunter : MonoBehaviour
 
     void Update()
     {
-        // Si el jugador est· desactivado (muerto), el objetivo se vuelve null
         if (target != null && target.gameObject.activeInHierarchy)
         {
             Vector3 direction = (target.position - transform.position).normalized;
@@ -38,7 +52,7 @@ public class MeleeHunter : MonoBehaviour
         }
         else
         {
-            moveDirection = Vector2.zero; // Se para si el jugador muere
+            moveDirection = Vector2.zero;
         }
     }
 
@@ -56,11 +70,11 @@ public class MeleeHunter : MonoBehaviour
 
     public void TakeDamage(int damageAmount)
     {
-        health -= damageAmount;
+        currentHealth -= damageAmount;
+        if (healthBar != null) healthBar.value = currentHealth; // Actualiza su barrita
 
-        if (health <= 0)
+        if (currentHealth <= 0)
         {
-            // Antes de morir, buscamos al jugador y le damos los puntos
             if (target != null)
             {
                 Player playerScript = target.GetComponent<Player>();
@@ -73,20 +87,17 @@ public class MeleeHunter : MonoBehaviour
         }
     }
 
-    // --- NUEVA FUNCI”N PARA HACER DA—O AL JUGADOR ---
     private void OnCollisionStay2D(Collision2D collision)
     {
-        // Si lo que estamos tocando tiene la etiqueta "Player"
         if (collision.gameObject.CompareTag("Player"))
         {
-            // Comprobamos si ya pasÛ el tiempo para volver a hacerle daÒo
             if (Time.time >= nextDamageTime)
             {
                 Player playerScript = collision.gameObject.GetComponent<Player>();
                 if (playerScript != null)
                 {
                     playerScript.TakeDamage(damageToPlayer);
-                    nextDamageTime = Time.time + damageRate; // Reiniciamos el temporizador de daÒo
+                    nextDamageTime = Time.time + damageRate;
                 }
             }
         }
