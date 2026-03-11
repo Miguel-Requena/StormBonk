@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2113670543434320595}
   - component: {fileID: 5250448385257482041}
   - component: {fileID: 4297233989989839378}
+  - component: {fileID: -5008745809572949727}
   m_Layer: 0
   m_Name: MeleeHunter
   m_TagString: Enemy
@@ -134,7 +135,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeHunter
   moveSpeed: 2
-  health: 10
+  maxHealth: 10
+  damageToPlayer: 10
+  pointsToGive: 5
+  damageRate: 1
+  healthBar: {fileID: 0}
 --- !u!61 &4297233989989839378
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -181,3 +186,21 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.64, y: 0.64}
   m_EdgeRadius: 0
+--- !u!114 &-5008745809572949727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 273460247986167828}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17b2dc0fe3ea3d14e8ff036a588dd414, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeHunter
+  moveSpeed: 2
+  maxHealth: 10
+  damageToPlayer: 10
+  pointsToGive: 5
+  damageRate: 1
+  healthBar: {fileID: 0}
