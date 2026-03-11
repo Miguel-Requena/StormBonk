@@ -2,6 +2,11 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    [Header("Estadísticas")]
+    public int maxHealth = 100;
+    public int currentHealth;
+    public int score = 0;
+
     [Header("Movimiento")]
     public float speed = 3f;
 
@@ -16,6 +21,7 @@ public class Player : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        currentHealth = maxHealth; // Empezamos con la vida al máximo
     }
 
     void Update()
@@ -44,7 +50,6 @@ public class Player : MonoBehaviour
     {
         GameObject fireball = Instantiate(fireballPrefab, transform.position, Quaternion.identity);
 
-        // Buscamos el script Fireball en la bola que acabamos de crear y le asignamos el objetivo
         Fireball fireballScript = fireball.GetComponent<Fireball>();
         if (fireballScript != null)
         {
@@ -71,5 +76,26 @@ public class Player : MonoBehaviour
             }
         }
         return closest;
+    }
+
+    // --- NUEVAS FUNCIONES DE VIDA Y PUNTOS ---
+
+    public void TakeDamage(int damage)
+    {
+        currentHealth -= damage;
+        Debug.Log("¡Auch! Vida del jugador: " + currentHealth);
+
+        if (currentHealth <= 0)
+        {
+            Debug.Log("¡HAS MUERTO! Fin de la partida.");
+            gameObject.SetActive(false); // Desactiva al jugador (simula que muere)
+            // Aquí más adelante llamaremos a la pantalla de Game Over
+        }
+    }
+
+    public void AddPoints(int pointsToAdd)
+    {
+        score += pointsToAdd;
+        Debug.Log("¡Puntos ganados! Puntuación total: " + score);
     }
 }
