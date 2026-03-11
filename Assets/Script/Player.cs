@@ -2,12 +2,16 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    [Header("Estadísticas")]
+    public int maxHealth = 100;
+    public int currentHealth;
+    public int score = 0;
+
     [Header("Movimiento")]
     public float speed = 3f;
 
     [Header("Bola de Fuego")]
     public GameObject fireballPrefab;
-    public float fireForce = 15f;
     public float fireRate = 1.0f;
 
     private Rigidbody2D rb;
@@ -17,6 +21,7 @@ public class Player : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        currentHealth = maxHealth; // Empezamos con la vida al máximo
     }
 
     void Update()
@@ -30,7 +35,7 @@ public class Player : MonoBehaviour
             Transform target = GetClosestEnemy();
             if (target != null)
             {
-                ShootFireball(target.position);
+                ShootFireball(target);
                 nextFireTime = Time.time + fireRate;
             }
         }
@@ -41,14 +46,14 @@ public class Player : MonoBehaviour
         rb.linearVelocity = moveDirection * speed;
     }
 
-    void ShootFireball(Vector3 targetPos)
+    void ShootFireball(Transform target)
     {
         GameObject fireball = Instantiate(fireballPrefab, transform.position, Quaternion.identity);
-        Rigidbody2D fireballRb = fireball.GetComponent<Rigidbody2D>();
-        if (fireballRb != null)
+
+        Fireball fireballScript = fireball.GetComponent<Fireball>();
+        if (fireballScript != null)
         {
-            Vector2 direction = (targetPos - transform.position).normalized;
-            fireballRb.AddForce(direction * fireForce, ForceMode2D.Impulse);
+            fireballScript.SetTarget(target);
         }
     }
 
@@ -73,4 +78,24 @@ public class Player : MonoBehaviour
         return closest;
     }
 
+    // --- NUEVAS FUNCIONES DE VIDA Y PUNTOS ---
+
+    public void TakeDamage(int damage)
+    {
+        currentHealth -= damage;
+        Debug.Log("¡Auch! Vida del jugador: " + currentHealth);
+
+        if (currentHealth <= 0)
+        {
+            Debug.Log("¡HAS MUERTO! Fin de la partida.");
+            gameObject.SetActive(false); // Desactiva al jugador (simula que muere)
+            // Aquí más adelante llamaremos a la pantalla de Game Over
+        }
+    }
+
+    public void AddPoints(int pointsToAdd)
+    {
+        score += pointsToAdd;
+        Debug.Log("¡Puntos ganados! Puntuación total: " + score);
+    }
 }
