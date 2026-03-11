@@ -7,7 +7,6 @@ public class Player : MonoBehaviour
 
     [Header("Bola de Fuego")]
     public GameObject fireballPrefab;
-    public float fireForce = 15f;
     public float fireRate = 1.0f;
 
     private Rigidbody2D rb;
@@ -30,7 +29,7 @@ public class Player : MonoBehaviour
             Transform target = GetClosestEnemy();
             if (target != null)
             {
-                ShootFireball(target.position);
+                ShootFireball(target);
                 nextFireTime = Time.time + fireRate;
             }
         }
@@ -41,14 +40,15 @@ public class Player : MonoBehaviour
         rb.linearVelocity = moveDirection * speed;
     }
 
-    void ShootFireball(Vector3 targetPos)
+    void ShootFireball(Transform target)
     {
         GameObject fireball = Instantiate(fireballPrefab, transform.position, Quaternion.identity);
-        Rigidbody2D fireballRb = fireball.GetComponent<Rigidbody2D>();
-        if (fireballRb != null)
+
+        // Buscamos el script Fireball en la bola que acabamos de crear y le asignamos el objetivo
+        Fireball fireballScript = fireball.GetComponent<Fireball>();
+        if (fireballScript != null)
         {
-            Vector2 direction = (targetPos - transform.position).normalized;
-            fireballRb.AddForce(direction * fireForce, ForceMode2D.Impulse);
+            fireballScript.SetTarget(target);
         }
     }
 
@@ -72,5 +72,4 @@ public class Player : MonoBehaviour
         }
         return closest;
     }
-
 }
