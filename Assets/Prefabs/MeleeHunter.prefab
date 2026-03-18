@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2113670543434320595}
   - component: {fileID: 5250448385257482041}
   - component: {fileID: 4297233989989839378}
+  - component: {fileID: -5035671943777761427}
   m_Layer: 0
   m_Name: MeleeHunter
   m_TagString: Enemy
@@ -84,7 +85,7 @@ SpriteRenderer:
   m_SortingLayer: 1
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: ed130aac49764ad4f9d35454c297b75a, type: 3}
+  m_Sprite: {fileID: 2078964560, guid: 4104ee12b4d54f54b91b3ba875787837, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -135,6 +136,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MeleeHunter
   moveSpeed: 2
   health: 10
+  damageToPlayer: 10
+  pointsToGive: 5
+  damageRate: 1
 --- !u!61 &4297233989989839378
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -173,7 +177,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.64, y: 0.64}
+    oldSize: {x: 1, y: 1}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -181,3 +185,25 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.64, y: 0.64}
   m_EdgeRadius: 0
+--- !u!95 &-5035671943777761427
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 273460247986167828}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 22100000, guid: 12cfc8b2360c2fc4499d4f6f6607671a, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
