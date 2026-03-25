@@ -69,6 +69,10 @@ public class Player : MonoBehaviour
         foreach (GameObject enemy in enemies)
         {
             float dist = Vector3.Distance(enemy.transform.position, currentPos);
+            MeleeHunter enemyScript = enemy.GetComponent<MeleeHunter>();
+            //Ignorar enemigos muertos
+            if (enemyScript != null && enemyScript.IsDead())
+                continue;
             if (dist < minDist)
             {
                 closest = enemy.transform;
