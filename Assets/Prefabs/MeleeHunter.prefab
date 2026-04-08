@@ -13,7 +13,11 @@ GameObject:
   - component: {fileID: 2113670543434320595}
   - component: {fileID: 5250448385257482041}
   - component: {fileID: 4297233989989839378}
+<<<<<<< HEAD
+  - component: {fileID: -5008745809572949727}
+=======
   - component: {fileID: -5035671943777761427}
+>>>>>>> main
   m_Layer: 0
   m_Name: MeleeHunter
   m_TagString: Enemy
@@ -135,10 +139,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeHunter
   moveSpeed: 2
+<<<<<<< HEAD
+  maxHealth: 10
+  damageToPlayer: 10
+  pointsToGive: 5
+  damageRate: 1
+  healthBar: {fileID: 0}
+=======
   health: 10
   damageToPlayer: 10
   pointsToGive: 5
   damageRate: 1
+>>>>>>> main
 --- !u!61 &4297233989989839378
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -185,15 +197,32 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.64, y: 0.64}
   m_EdgeRadius: 0
+<<<<<<< HEAD
+--- !u!114 &-5008745809572949727
+MonoBehaviour:
+=======
 --- !u!95 &-5035671943777761427
 Animator:
   serializedVersion: 7
+>>>>>>> main
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 273460247986167828}
   m_Enabled: 1
+<<<<<<< HEAD
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17b2dc0fe3ea3d14e8ff036a588dd414, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeHunter
+  moveSpeed: 2
+  maxHealth: 10
+  damageToPlayer: 10
+  pointsToGive: 5
+  damageRate: 1
+  healthBar: {fileID: 0}
+=======
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 22100000, guid: 12cfc8b2360c2fc4499d4f6f6607671a, type: 2}
   m_CullingMode: 0
@@ -207,3 +236,4 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+>>>>>>> main

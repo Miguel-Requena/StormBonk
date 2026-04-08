@@ -1,11 +1,18 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
+using UnityEngine.UI; // ‚Üê ¬°NUEVO! Necesario para la UI
+using UnityEngine.SceneManagement; // ‚Üê ¬°NUEVO! Para reiniciar el nivel
 
 public class Player : MonoBehaviour
 {
-    [Header("EstadÌsticas")]
+    [Header("Estad√≠sticas")]
     public int maxHealth = 100;
     public int currentHealth;
     public int score = 0;
+
+    [Header("Interfaz (UI)")]
+    public Text scoreText;              // El texto de los puntos
+    public Slider playerHealthBar;      // La barra de vida del jugador
+    public GameObject gameOverPanel;    // El panel de Game Over
 
     [Header("Movimiento")]
     public float speed = 3f;
@@ -17,15 +24,30 @@ public class Player : MonoBehaviour
     private Rigidbody2D rb;
     private Vector2 moveDirection;
     private float nextFireTime = 0f;
+    private bool isDead = false;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        currentHealth = maxHealth; // Empezamos con la vida al m·ximo
+        currentHealth = maxHealth;
+
+        // Configuramos la UI inicial
+        if (playerHealthBar != null)
+        {
+            playerHealthBar.maxValue = maxHealth;
+            playerHealthBar.value = currentHealth;
+        }
+        UpdateScoreUI();
+
+        // Nos aseguramos de ocultar el Game Over y que el tiempo corra
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        Time.timeScale = 1f;
     }
 
     void Update()
     {
+        if (isDead) return; // Si est√°s muerto, no puedes hacer nada
+
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveY = Input.GetAxisRaw("Vertical");
         moveDirection = new Vector2(moveX, moveY).normalized;
@@ -43,13 +65,15 @@ public class Player : MonoBehaviour
 
     void FixedUpdate()
     {
-        rb.linearVelocity = moveDirection * speed;
+        if (!isDead)
+        {
+            rb.linearVelocity = moveDirection * speed;
+        }
     }
 
     void ShootFireball(Transform target)
     {
         GameObject fireball = Instantiate(fireballPrefab, transform.position, Quaternion.identity);
-
         Fireball fireballScript = fireball.GetComponent<Fireball>();
         if (fireballScript != null)
         {
@@ -82,24 +106,51 @@ public class Player : MonoBehaviour
         return closest;
     }
 
-    // --- NUEVAS FUNCIONES DE VIDA Y PUNTOS ---
-
     public void TakeDamage(int damage)
     {
+        if (isDead) return;
+
         currentHealth -= damage;
-        Debug.Log("°Auch! Vida del jugador: " + currentHealth);
+        if (playerHealthBar != null) playerHealthBar.value = currentHealth; // Actualiza la barra
 
         if (currentHealth <= 0)
         {
-            Debug.Log("°HAS MUERTO! Fin de la partida.");
-            gameObject.SetActive(false); // Desactiva al jugador (simula que muere)
-            // AquÌ m·s adelante llamaremos a la pantalla de Game Over
+            Die();
         }
     }
 
     public void AddPoints(int pointsToAdd)
     {
+        if (isDead) return;
         score += pointsToAdd;
-        Debug.Log("°Puntos ganados! PuntuaciÛn total: " + score);
+        UpdateScoreUI();
+    }
+
+    void UpdateScoreUI()
+    {
+        if (scoreText != null)
+        {
+            scoreText.text = "PUNTOS: " + score;
+        }
+    }
+
+    void Die()
+    {
+        isDead = true;
+        rb.linearVelocity = Vector2.zero;
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true); // Muestra la pantalla de Game Over
+        }
+
+        Time.timeScale = 0f; // Pausa el juego por completo
+    }
+
+    // Esta funci√≥n la pondremos en un bot√≥n para reiniciar
+    public void RestartGame()
+    {
+        Time.timeScale = 1f; // Vuelve a la normalidad el tiempo
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name); // Recarga la escena
     }
 }
