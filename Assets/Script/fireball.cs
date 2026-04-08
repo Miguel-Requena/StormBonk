@@ -40,22 +40,14 @@ public class Fireball : MonoBehaviour
 
         // ── MeleeHunter ────────────────────────────────────────────────────────
         MeleeHunter melee = collision.GetComponent<MeleeHunter>();
-        if (melee != null)
-        {
-            melee.TakeDamage(damage);
-            Destroy(gameObject);
-            return;
-        }
+        if (melee != null) { melee.TakeDamage(damage); Destroy(gameObject); return; }
 
         // ── MageEnemy ──────────────────────────────────────────────────────────
         MageEnemy mage = collision.GetComponent<MageEnemy>();
-        if (mage != null)
-        {
-            mage.TakeDamage(damage);
-            Destroy(gameObject);
-            return;
-        }
+        if (mage != null) { mage.TakeDamage(damage); Destroy(gameObject); return; }
 
-        // Si hay más tipos de enemigos en el futuro, añádelos aquí de la misma forma
+        // ── Charger ────────────────────────────────────────────────────────────
+        Charger charger = collision.GetComponent<Charger>();
+        if (charger != null) { charger.TakeDamage(damage); Destroy(gameObject); return; }
     }
 }

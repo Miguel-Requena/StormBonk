@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    [Header("Estad�sticas")]
+    [Header("Estadísticas")]
     public int maxHealth = 100;
     public int currentHealth;
     public int score = 0;
@@ -18,14 +18,25 @@ public class Player : MonoBehaviour
     private Vector2 moveDirection;
     private float nextFireTime = 0f;
 
+    // ─── Stun ──────────────────────────────────────────────────────────────────
+    private float _stunTimer = 0f;
+    public bool IsStunned => _stunTimer > 0f;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        currentHealth = maxHealth; // Empezamos con la vida al m�ximo
+        currentHealth = maxHealth;
     }
 
     void Update()
     {
+        // Cuenta regresiva del stun
+        if (_stunTimer > 0f)
+            _stunTimer -= Time.deltaTime;
+
+        // Si está stuneado, no lee input ni dispara
+        if (IsStunned) return;
+
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveY = Input.GetAxisRaw("Vertical");
         moveDirection = new Vector2(moveX, moveY).normalized;
@@ -43,18 +54,22 @@ public class Player : MonoBehaviour
 
     void FixedUpdate()
     {
+        // Si está stuneado, para completamente al jugador
+        if (IsStunned)
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
         rb.linearVelocity = moveDirection * speed;
     }
 
     void ShootFireball(Transform target)
     {
         GameObject fireball = Instantiate(fireballPrefab, transform.position, Quaternion.identity);
-
         Fireball fireballScript = fireball.GetComponent<Fireball>();
         if (fireballScript != null)
-        {
             fireballScript.SetTarget(target);
-        }
     }
 
     Transform GetClosestEnemy()
@@ -78,24 +93,32 @@ public class Player : MonoBehaviour
         return closest;
     }
 
-    // --- NUEVAS FUNCIONES DE VIDA Y PUNTOS ---
-
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;
-        Debug.Log("�Auch! Vida del jugador: " + currentHealth);
+        Debug.Log("¡Auch! Vida del jugador: " + currentHealth);
 
         if (currentHealth <= 0)
         {
-            Debug.Log("�HAS MUERTO! Fin de la partida.");
-            gameObject.SetActive(false); // Desactiva al jugador (simula que muere)
-            // Aqu� m�s adelante llamaremos a la pantalla de Game Over
+            Debug.Log("¡HAS MUERTO! Fin de la partida.");
+            gameObject.SetActive(false);
         }
+    }
+
+    /// <summary>
+    /// Deja al jugador sin poder moverse ni disparar durante 'duration' segundos.
+    /// Llamado por Charger al impactar.
+    /// </summary>
+    public void Stun(float duration)
+    {
+        _stunTimer = duration;
+        rb.linearVelocity = Vector2.zero;
+        Debug.Log("[Player] ¡Stuneado por " + duration + "s!");
     }
 
     public void AddPoints(int pointsToAdd)
     {
         score += pointsToAdd;
-        Debug.Log("�Puntos ganados! Puntuaci�n total: " + score);
+        Debug.Log("¡Puntos ganados! Puntuación total: " + score);
     }
 }
