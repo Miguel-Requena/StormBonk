@@ -1,10 +1,12 @@
 using UnityEngine;
+using UnityEngine.UI; // Imprescindible para manejar el Slider
 
 public class MeleeHunter : MonoBehaviour
 {
-    [Header("Estadísticas del Enemigo")]
+    [Header("Estadï¿½sticas del Enemigo")]
     public float moveSpeed = 2f;
-    public int health = 10;
+    public int maxHealth = 10;   // Usamos maxHealth para el cï¿½lculo
+    private int currentHealth;   // Salud actual del enemigo
     public int damageToPlayer = 10;
     public int pointsToGive = 5;
     public float damageRate = 1f;
@@ -25,10 +27,24 @@ public class MeleeHunter : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>(); 
+    [SerializeField] private Slider healthBarSlider; // Arrastra aquï¿½ el Slider directamente
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        currentHealth = maxHealth; // Inicializamos vida al 100%
+
+        // Intentamos buscar el Slider automï¿½ticamente si se nos olvidï¿½ asignarlo
+        if (healthBarSlider == null)
+        {
+            healthBarSlider = GetComponentInChildren<Slider>();
+        }
     }
 
     void Start()
     {
+        UpdateVisualHealthBar(); // Ponemos la barra al mï¿½ximo al empezar
+
         GameObject player = GameObject.Find("Player");
         if (player != null)
         {
@@ -42,8 +58,7 @@ public class MeleeHunter : MonoBehaviour
 
         if (target != null && target.gameObject.activeInHierarchy)
         {
-            Vector3 direction = (target.position - transform.position).normalized;
-            moveDirection = direction;
+            moveDirection = (target.position - transform.position).normalized;
         }
         else
         {
@@ -58,7 +73,8 @@ public class MeleeHunter : MonoBehaviour
 
         if (target != null && target.gameObject.activeInHierarchy)
         {
-            rb.linearVelocity = new Vector2(moveDirection.x, moveDirection.y) * moveSpeed;
+            // Nota: En versiones nuevas se usa 'linearVelocity', en antiguas 'velocity'
+            rb.linearVelocity = moveDirection * moveSpeed;
         }
         else
         {
@@ -83,6 +99,12 @@ public class MeleeHunter : MonoBehaviour
             rb.linearVelocity = Vector2.zero;
             GetComponent<Collider2D>().enabled = false;
 
+        currentHealth -= damageAmount;
+
+        UpdateVisualHealthBar(); // Actualizamos la barra cada vez que recibe daï¿½o
+
+        if (currentHealth <= 0)
+        {
             if (target != null)
             {
                 Player playerScript = target.GetComponent<Player>();
@@ -100,6 +122,18 @@ public class MeleeHunter : MonoBehaviour
     {
         if (isDead) return;
 
+    // Funciï¿½n interna para actualizar el Slider sin necesidad de otra clase
+    private void UpdateVisualHealthBar()
+    {
+        if (healthBarSlider != null)
+        {
+            // Convertimos a float para que la divisiï¿½n sea decimal (ej: 5/10 = 0.5)
+            healthBarSlider.value = (float)currentHealth / (float)maxHealth;
+        }
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
         if (collision.gameObject.CompareTag("Player"))
         {
             if (Time.time >= nextDamageTime)
