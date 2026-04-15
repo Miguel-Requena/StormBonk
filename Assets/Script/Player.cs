@@ -15,21 +15,34 @@ public class Player : MonoBehaviour
     public float fireRate = 1.0f;
 
     private Rigidbody2D rb;
+    private Animator anim; 
     private Vector2 moveDirection;
     private float nextFireTime = 0f;
+    private bool isDead = false; 
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        currentHealth = maxHealth; // Empezamos con la vida al máximo
+        anim = GetComponent<Animator>(); 
+        currentHealth = maxHealth;
     }
 
     void Update()
     {
+        if (isDead) return; 
+
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveY = Input.GetAxisRaw("Vertical");
         moveDirection = new Vector2(moveX, moveY).normalized;
 
+        // --- ANIMACIÓN DE CAMINAR ---
+        anim.SetFloat("Velocidad", moveDirection.magnitude);
+
+        // --- GIRAR EL SPRITE ---
+        if (moveX > 0) transform.localScale = new Vector3(3f, 3f, 1);
+        else if (moveX < 0) transform.localScale = new Vector3(-3f, 3f, 1);
+
+        // --- DISPARO ---
         if (Time.time >= nextFireTime && fireballPrefab != null)
         {
             Transform target = GetClosestEnemy();
@@ -43,18 +56,50 @@ public class Player : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (isDead) { rb.linearVelocity = Vector2.zero; return; }
         rb.linearVelocity = moveDirection * speed;
     }
 
     void ShootFireball(Transform target)
     {
         GameObject fireball = Instantiate(fireballPrefab, transform.position, Quaternion.identity);
-
         Fireball fireballScript = fireball.GetComponent<Fireball>();
-        if (fireballScript != null)
+        if (fireballScript != null) fireballScript.SetTarget(target);
+    }
+
+    // --- SISTEMA DE DAÑO Y ANIMACIONES ---
+
+    public void TakeDamage(int damage)
+    {
+        if (isDead) return; 
+
+        currentHealth -= damage;
+
+        if (currentHealth > 0)
         {
-            fireballScript.SetTarget(target);
+            anim.SetTrigger("Hurt");
+            Debug.Log("Vida del jugador: " + currentHealth);
         }
+        else
+        {
+            MuerteJugador();
+        }
+    }
+
+    void MuerteJugador()
+    {
+        isDead = true;
+        anim.SetTrigger("Die"); // Activa la animación de muerte
+        Debug.Log("¡HAS MUERTO! Fin de la partida.");
+
+        GetComponent<Collider2D>().enabled = false;
+    }
+
+
+    public void AddPoints(int pointsToAdd)
+    {
+        score += pointsToAdd;
+        Debug.Log("¡Puntos ganados! Puntuación total: " + score);
     }
 
     Transform GetClosestEnemy()
@@ -70,9 +115,7 @@ public class Player : MonoBehaviour
         {
             float dist = Vector3.Distance(enemy.transform.position, currentPos);
             MeleeHunter enemyScript = enemy.GetComponent<MeleeHunter>();
-            //Ignorar enemigos muertos
-            if (enemyScript != null && enemyScript.IsDead())
-                continue;
+            if (enemyScript != null && enemyScript.IsDead()) continue;
             if (dist < minDist)
             {
                 closest = enemy.transform;
@@ -80,26 +123,5 @@ public class Player : MonoBehaviour
             }
         }
         return closest;
-    }
-
-    // --- NUEVAS FUNCIONES DE VIDA Y PUNTOS ---
-
-    public void TakeDamage(int damage)
-    {
-        currentHealth -= damage;
-        Debug.Log("¡Auch! Vida del jugador: " + currentHealth);
-
-        if (currentHealth <= 0)
-        {
-            Debug.Log("¡HAS MUERTO! Fin de la partida.");
-            gameObject.SetActive(false); // Desactiva al jugador (simula que muere)
-            // Aquí más adelante llamaremos a la pantalla de Game Over
-        }
-    }
-
-    public void AddPoints(int pointsToAdd)
-    {
-        score += pointsToAdd;
-        Debug.Log("¡Puntos ganados! Puntuación total: " + score);
     }
 }
