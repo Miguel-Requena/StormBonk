@@ -15,32 +15,45 @@ public class Player : MonoBehaviour
     public float fireRate = 1.0f;
 
     private Rigidbody2D rb;
+    private Animator anim;           // de main3
     private Vector2 moveDirection;
     private float nextFireTime = 0f;
+    private bool isDead = false;     // de main3
 
-    // ─── Stun ──────────────────────────────────────────────────────────────────
+    // ─── Stun (de HEAD) ───────────────────────────────────────────────────────
     private float _stunTimer = 0f;
     public bool IsStunned => _stunTimer > 0f;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
+        rb   = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>(); // de main3
         currentHealth = maxHealth;
     }
 
     void Update()
     {
-        // Cuenta regresiva del stun
+        if (isDead) return; // de main3
+
+        // Cuenta regresiva del stun (de HEAD)
         if (_stunTimer > 0f)
             _stunTimer -= Time.deltaTime;
 
-        // Si está stuneado, no lee input ni dispara
+        // Si está stuneado, no lee input ni dispara (de HEAD)
         if (IsStunned) return;
 
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveY = Input.GetAxisRaw("Vertical");
         moveDirection = new Vector2(moveX, moveY).normalized;
 
+        // Animación de caminar (de main3)
+        anim.SetFloat("Velocidad", moveDirection.magnitude);
+
+        // Girar el sprite (de main3)
+        if (moveX > 0)      transform.localScale = new Vector3( 3f, 3f, 1);
+        else if (moveX < 0) transform.localScale = new Vector3(-3f, 3f, 1);
+
+        // Disparo
         if (Time.time >= nextFireTime && fireballPrefab != null)
         {
             Transform target = GetClosestEnemy();
@@ -54,7 +67,9 @@ public class Player : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Si está stuneado, para completamente al jugador
+        if (isDead) { rb.linearVelocity = Vector2.zero; return; } // de main3
+
+        // Si está stuneado, para completamente al jugador (de HEAD)
         if (IsStunned)
         {
             rb.linearVelocity = Vector2.zero;
@@ -68,9 +83,57 @@ public class Player : MonoBehaviour
     {
         GameObject fireball = Instantiate(fireballPrefab, transform.position, Quaternion.identity);
         Fireball fireballScript = fireball.GetComponent<Fireball>();
-        if (fireballScript != null)
-            fireballScript.SetTarget(target);
+        if (fireballScript != null) fireballScript.SetTarget(target);
     }
+
+    // ─── Daño y muerte ────────────────────────────────────────────────────────
+
+    public void TakeDamage(int damage)
+    {
+        if (isDead) return; // de main3
+
+        currentHealth -= damage;
+
+        if (currentHealth > 0)
+        {
+            anim.SetTrigger("Hurt"); // de main3
+            Debug.Log("Vida del jugador: " + currentHealth);
+        }
+        else
+        {
+            MuerteJugador();
+        }
+    }
+
+    void MuerteJugador() // de main3
+    {
+        isDead = true;
+        currentHealth = 0;
+        anim.SetTrigger("Die");
+        Debug.Log("¡HAS MUERTO! Fin de la partida.");
+        GetComponent<Collider2D>().enabled = false;
+    }
+
+    // ─── Stun (de HEAD) ───────────────────────────────────────────────────────
+
+    /// <summary>Deja al jugador sin poder moverse ni disparar durante 'duration' segundos.</summary>
+    public void Stun(float duration)
+    {
+        if (isDead) return;
+        _stunTimer = duration;
+        rb.linearVelocity = Vector2.zero;
+        Debug.Log("[Player] ¡Stuneado por " + duration + "s!");
+    }
+
+    // ─── Puntos ───────────────────────────────────────────────────────────────
+
+    public void AddPoints(int pointsToAdd)
+    {
+        score += pointsToAdd;
+        Debug.Log("¡Puntos ganados! Puntuación total: " + score);
+    }
+
+    // ─── Enemigo más cercano ──────────────────────────────────────────────────
 
     Transform GetClosestEnemy()
     {
@@ -84,41 +147,10 @@ public class Player : MonoBehaviour
         foreach (GameObject enemy in enemies)
         {
             float dist = Vector3.Distance(enemy.transform.position, currentPos);
-            if (dist < minDist)
-            {
-                closest = enemy.transform;
-                minDist = dist;
-            }
+            MeleeHunter enemyScript = enemy.GetComponent<MeleeHunter>();
+            if (enemyScript != null && enemyScript.IsDead()) continue;
+            if (dist < minDist) { closest = enemy.transform; minDist = dist; }
         }
         return closest;
-    }
-
-    public void TakeDamage(int damage)
-    {
-        currentHealth -= damage;
-        Debug.Log("¡Auch! Vida del jugador: " + currentHealth);
-
-        if (currentHealth <= 0)
-        {
-            Debug.Log("¡HAS MUERTO! Fin de la partida.");
-            gameObject.SetActive(false);
-        }
-    }
-
-    /// <summary>
-    /// Deja al jugador sin poder moverse ni disparar durante 'duration' segundos.
-    /// Llamado por Charger al impactar.
-    /// </summary>
-    public void Stun(float duration)
-    {
-        _stunTimer = duration;
-        rb.linearVelocity = Vector2.zero;
-        Debug.Log("[Player] ¡Stuneado por " + duration + "s!");
-    }
-
-    public void AddPoints(int pointsToAdd)
-    {
-        score += pointsToAdd;
-        Debug.Log("¡Puntos ganados! Puntuación total: " + score);
     }
 }
