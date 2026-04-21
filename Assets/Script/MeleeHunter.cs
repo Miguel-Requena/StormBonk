@@ -1,10 +1,13 @@
 using UnityEngine;
+using UnityEngine.UI; // Necesario para trabajar con Sliders
 
 public class MeleeHunter : MonoBehaviour
 {
     [Header("Estadísticas del Enemigo")]
     public float moveSpeed = 2f;
     public int health = 10;
+    public int maxHealth = 10; // Salud máxima original
+    private int currentHealth; // Salud actual
     public int damageToPlayer = 10;
     public int pointsToGive = 5;
     public float damageRate = 1f;
@@ -16,6 +19,9 @@ public class MeleeHunter : MonoBehaviour
 
     private Animator anim;
 
+    [Header("Interfaz")]
+    [SerializeField] private Slider healthBarSlider;
+
     private bool isDead = false;
     public bool IsDead()
     {
@@ -24,11 +30,20 @@ public class MeleeHunter : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        anim = GetComponent<Animator>(); 
+        currentHealth = maxHealth; // Inicializamos la salud
+        anim = GetComponent<Animator>();
+
+        // Buscamos la barra de vida en los hijos para evitar el NullReferenceException
+        if (healthBarSlider == null)
+        {
+            healthBarSlider = GetComponentInChildren<Slider>();
+        }
     }
 
     void Start()
     {
+        UpdateVisualHealthBar(); // Ponemos la barra al máximo al empezar
+
         GameObject player = GameObject.Find("Player");
         if (player != null)
         {
@@ -71,6 +86,8 @@ public class MeleeHunter : MonoBehaviour
         if (isDead) return;
 
         health -= damageAmount;
+        currentHealth -= damageAmount;
+        UpdateVisualHealthBar();
 
         anim.SetTrigger("Hit");
 
@@ -93,6 +110,16 @@ public class MeleeHunter : MonoBehaviour
             }
 
             Destroy(gameObject, 1.2f);
+        }
+    }
+
+    // Función interna para actualizar el Slider sin necesidad de otra clase
+    private void UpdateVisualHealthBar()
+    {
+        if (healthBarSlider != null)
+        {
+            // Convertimos a float para que la división sea decimal
+            healthBarSlider.value = (float)currentHealth / (float)maxHealth;
         }
     }
 

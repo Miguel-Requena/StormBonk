@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI; 
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class Charger : MonoBehaviour
@@ -7,9 +8,13 @@ public class Charger : MonoBehaviour
     private State _state = State.Idle;
 
     [Header("Estadísticas")]
-    public int health = 40;
+    public int maxHealth = 40;
+    private int _currentHealth; // Usamos esta para la vida real
     public int damageToPlayer = 15;
     public int pointsToGive = 20;
+
+    [Header("Interfaz de Usuario")]
+    [SerializeField] private Slider healthBarSlider;
 
     [Header("Comportamiento")]
     public float visionRange = 12f;
@@ -28,20 +33,30 @@ public class Charger : MonoBehaviour
     public float stunDamageMultiplier = 2f;
 
     private Rigidbody2D _rb;
-    private Transform   _player;
+    private Transform _player;
 
-    private float   _stateTimer;
+    private float _stateTimer;
     private Vector2 _chargeDirection;
-    private float   _chargeMaxDistance;
+    private float _chargeMaxDistance;
     private Vector2 _chargeStartPos;
-    private bool    _hitPlayerThisCharge;
+    private bool _hitPlayerThisCharge;
 
     private void Awake() => _rb = GetComponent<Rigidbody2D>();
 
     private void Start()
     {
+        _currentHealth = maxHealth;
+
+        if (healthBarSlider != null)
+        {
+            healthBarSlider.minValue = 0f;
+            healthBarSlider.maxValue = 1f;
+            healthBarSlider.value = 1f;
+        }
+
         GameObject p = GameObject.Find("Player");
         if (p != null) _player = p.transform;
+
     }
 
     private void Update()
@@ -59,10 +74,10 @@ public class Charger : MonoBehaviour
 
         switch (_state)
         {
-            case State.Idle:    UpdateIdle(dist); break;
-            case State.Prepare: UpdatePrepare();  break;
-            case State.Charge:  UpdateCharge();   break;
-            case State.Stunned: UpdateStunned();  break;
+            case State.Idle: UpdateIdle(dist); break;
+            case State.Prepare: UpdatePrepare(); break;
+            case State.Charge: UpdateCharge(); break;
+            case State.Stunned: UpdateStunned(); break;
         }
     }
 
@@ -99,26 +114,26 @@ public class Charger : MonoBehaviour
 
     private void EnterPrepare()
     {
-        _state      = State.Prepare;
+        _state = State.Prepare;
         _stateTimer = prepareTime;
         _rb.linearVelocity = Vector2.zero;
     }
 
     private void EnterCharge()
     {
-        _state               = State.Charge;
-        _stateTimer          = chargeDuration;
+        _state = State.Charge;
+        _stateTimer = chargeDuration;
         _hitPlayerThisCharge = false;
-        _chargeStartPos      = transform.position;
+        _chargeStartPos = transform.position;
 
-        Vector2 toPlayer   = (Vector2)_player.position - (Vector2)transform.position;
-        _chargeDirection   = toPlayer.normalized;
+        Vector2 toPlayer = (Vector2)_player.position - (Vector2)transform.position;
+        _chargeDirection = toPlayer.normalized;
         _chargeMaxDistance = toPlayer.magnitude + chargeOvershoot;
     }
 
     private void EnterStunned()
     {
-        _state      = State.Stunned;
+        _state = State.Stunned;
         _stateTimer = stunDuration;
         _rb.linearVelocity = Vector2.zero;
     }
@@ -133,7 +148,7 @@ public class Charger : MonoBehaviour
             if (playerScript != null)
             {
                 playerScript.TakeDamage(damageToPlayer);
-                playerScript.Stun(playerStunDuration); // ← jugador no se puede mover
+                playerScript.Stun(playerStunDuration);
             }
             _hitPlayerThisCharge = true;
             EnterStunned();
@@ -155,16 +170,25 @@ public class Charger : MonoBehaviour
             ? Mathf.RoundToInt(amount * stunDamageMultiplier)
             : amount;
 
-        health -= finalDamage;
-        if (health <= 0) Die();
+        _currentHealth -= finalDamage;
+
+        if (healthBarSlider != null)
+        {
+            healthBarSlider.value = (float)_currentHealth / (float)maxHealth;
+        }
+
+        if (_currentHealth <= 0) Die();
     }
 
     private void Die()
     {
         _state = State.Dead;
         _rb.linearVelocity = Vector2.zero;
+
+        if (healthBarSlider != null) healthBarSlider.gameObject.SetActive(false);
+
         _player?.GetComponent<Player>()?.AddPoints(pointsToGive);
-        Destroy(gameObject);
+        Destroy(gameObject, 0.1f);
     }
 
 #if UNITY_EDITOR

@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using UnityEngine;
+using UnityEngine.UI; 
 
 /// <summary>
 /// Enemigo mago 2D. Compatible con Player.cs, MeleeHunter.cs y Fireball.cs del proyecto.
@@ -19,9 +21,13 @@ public class MageEnemy : MonoBehaviour
 
     // ─── Stats ─────────────────────────────────────────────────────────────────
     [Header("Estadísticas del Mago")]
-    public int health = 30;
+    public int maxHealth = 30;          // Salud máxima (Referencia)
+    private int _currentHealth;         // Salud real
     public int damageToPlayer = 8;      // Daño de cada proyectil
     public int pointsToGive = 15;       // Más puntos que el melee por ser más difícil
+
+    [Header("Interfaz de Usuario")]
+    [SerializeField] private Slider healthBarSlider; // Arrastra el Slider aquí
 
     // ─── Distancias ────────────────────────────────────────────────────────────
     [Header("Distancias de comportamiento")]
@@ -63,6 +69,16 @@ public class MageEnemy : MonoBehaviour
 
     private void Start()
     {
+        _currentHealth = maxHealth; // Inicializamos la salud
+
+        // Configuración inicial del Slider
+        if (healthBarSlider != null)
+        {
+            healthBarSlider.minValue = 0f;
+            healthBarSlider.maxValue = 1f; // Trabajamos con porcentaje (0 a 1)
+            healthBarSlider.value = 1f;    // Barra llena al empezar
+        }
+
         // Buscamos al jugador igual que hace MeleeHunter
         GameObject playerObj = GameObject.Find("Player");
         if (playerObj != null)
@@ -101,17 +117,17 @@ public class MageEnemy : MonoBehaviour
 
             // ── Chase: avanza hacia el jugador hasta entrar en rango ───────────
             case State.Chase:
-                if (dist > detectionRange) { _state = State.Idle;    break; }
+                if (dist > detectionRange) { _state = State.Idle; break; }
                 if (dist < retreatDistance) { _state = State.Retreat; break; }
-                if (dist <= attackRange)    { _state = State.Attack;  break; }
+                if (dist <= attackRange) { _state = State.Attack; break; }
 
                 MoveToward(_player.position, chaseSpeed);
                 break;
 
             // ── Attack: se queda en preferredRange y dispara ───────────────────
             case State.Attack:
-                if (dist > detectionRange)  { _state = State.Idle;    break; }
-                if (dist > attackRange)     { _state = State.Chase;   break; }
+                if (dist > detectionRange) { _state = State.Idle; break; }
+                if (dist > attackRange) { _state = State.Chase; break; }
                 if (dist < retreatDistance) { _state = State.Retreat; break; }
 
                 AdjustPreferredDistance(dist);
@@ -125,7 +141,7 @@ public class MageEnemy : MonoBehaviour
 
             // ── Retreat: huye del jugador ──────────────────────────────────────
             case State.Retreat:
-                if (dist > detectionRange)  { _state = State.Idle;   break; }
+                if (dist > detectionRange) { _state = State.Idle; break; }
                 if (dist >= preferredRange) { _state = State.Attack; break; }
 
                 Vector2 fleeDir = ((Vector2)transform.position - (Vector2)_player.position).normalized;
@@ -191,9 +207,20 @@ public class MageEnemy : MonoBehaviour
     {
         if (_state == State.Dead) return;
 
-        health -= amount;
+        _currentHealth -= amount;
 
-        if (health <= 0)
+        // Actualización visual de la barra
+        if (healthBarSlider != null)
+        {
+            // Calculamos el porcentaje. Usamos (float) para evitar que la división de enteros de 0.
+            float porcentajeVida = (float)_currentHealth / (float)maxHealth;
+            healthBarSlider.value = porcentajeVida;
+
+            // Debug para verificar en la consola si el valor está bajando realmente
+            //Debug.Log($"Mago herido. Vida: {_currentHealth}/{maxHealth}. Slider seteado en: {porcentajeVida}");
+        }
+
+        if ( _currentHealth <= 0)
             Die();
     }
 
@@ -227,3 +254,4 @@ public class MageEnemy : MonoBehaviour
     }
 #endif
 }
+
