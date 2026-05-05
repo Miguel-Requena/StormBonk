@@ -1,10 +1,10 @@
-using System.Diagnostics;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI; 
+using UnityEngine.UI;
 
 /// <summary>
 /// Enemigo mago 2D. Compatible con Player.cs, MeleeHunter.cs y Fireball.cs del proyecto.
-/// 
+///
 /// SETUP en Unity:
 ///   - Añade este script al prefab del mago
 ///   - Añade Rigidbody2D (Gravity Scale = 0, Freeze Rotation Z)
@@ -16,80 +16,78 @@ using UnityEngine.UI;
 public class MageEnemy : MonoBehaviour
 {
     // ─── Estados ───────────────────────────────────────────────────────────────
-    private enum State { Idle, Chase, Attack, Retreat, Dead }
-    private State _state = State.Idle;
+    private enum State { Chase, Attack, Retreat, Dead }
+    private State _state = State.Chase;   // persigue desde el primer frame
 
     // ─── Stats ─────────────────────────────────────────────────────────────────
     [Header("Estadísticas del Mago")]
-    public int maxHealth = 30;          // Salud máxima (Referencia)
-    private int _currentHealth;         // Salud real
-    public int damageToPlayer = 8;      // Daño de cada proyectil
-    public int pointsToGive = 15;       // Más puntos que el melee por ser más difícil
+    public int maxHealth      = 30;
+    private int _currentHealth;
+    public int damageToPlayer = 8;
+    public int pointsToGive   = 15;
 
     [Header("Interfaz de Usuario")]
-    [SerializeField] private Slider healthBarSlider; // Arrastra el Slider aquí
+    [SerializeField] private Slider healthBarSlider;
 
     // ─── Distancias ────────────────────────────────────────────────────────────
     [Header("Distancias de comportamiento")]
-    [Tooltip("A esta distancia el mago detecta al jugador.")]
-    public float detectionRange = 12f;
-
-    [Tooltip("Distancia máxima desde la que dispara.")]
-    public float attackRange = 9f;
-
-    [Tooltip("Distancia ideal a la que quiere quedarse.")]
-    public float preferredRange = 7f;
-
-    [Tooltip("Si el jugador se acerca más de esto, el mago huye.")]
+    public float attackRange     = 9f;
+    public float preferredRange  = 7f;
     public float retreatDistance = 4f;
 
     // ─── Movimiento ────────────────────────────────────────────────────────────
     [Header("Movimiento")]
-    public float chaseSpeed = 1.8f;
+    public float chaseSpeed   = 1.8f;
     public float retreatSpeed = 2.8f;
+
+    [Header("Pathfinding A*")]
+    public float pathUpdateInterval = 0.4f;
 
     // ─── Disparo ───────────────────────────────────────────────────────────────
     [Header("Disparo")]
-    [Tooltip("Prefab del proyectil del mago (MageProjectile.cs).")]
     public GameObject projectilePrefab;
-
-    [Tooltip("Segundos entre disparos.")]
     public float attackCooldown = 2.5f;
 
     // ─── Privados ──────────────────────────────────────────────────────────────
     private Rigidbody2D _rb;
-    private Transform _player;
-    private float _attackTimer = 0f;
+    private Transform   _player;
+    private Player      _playerScript;
+    private float       _attackTimer = 0f;
+
+    // A* data
+    private List<Vector2> _path;
+    private int            _pathIndex;
+    private float          _pathTimer;
+    private Vector2        _currentPathTarget;
 
     // ──────────────────────────────────────────────────────────────────────────
-    private void Awake()
-    {
-        _rb = GetComponent<Rigidbody2D>();
-    }
+    private void Awake() => _rb = GetComponent<Rigidbody2D>();
 
     private void Start()
     {
-        _currentHealth = maxHealth; // Inicializamos la salud
+        _currentHealth = maxHealth;
 
-        // Configuración inicial del Slider
         if (healthBarSlider != null)
         {
             healthBarSlider.minValue = 0f;
-            healthBarSlider.maxValue = 1f; // Trabajamos con porcentaje (0 a 1)
-            healthBarSlider.value = 1f;    // Barra llena al empezar
+            healthBarSlider.maxValue = 1f;
+            healthBarSlider.value    = 1f;
         }
 
-        // Buscamos al jugador igual que hace MeleeHunter
         GameObject playerObj = GameObject.Find("Player");
         if (playerObj != null)
-            _player = playerObj.transform;
+        {
+            _player       = playerObj.transform;
+            _playerScript = playerObj.GetComponent<Player>();
+        }
+
+        // Fuerza recálculo de path en el primer frame
+        _pathTimer = 0f;
     }
 
     private void Update()
     {
         if (_state == State.Dead) return;
-
-        // Si el jugador muere (se desactiva), nos paramos
         if (_player == null || !_player.gameObject.activeInHierarchy)
         {
             _rb.linearVelocity = Vector2.zero;
@@ -99,85 +97,105 @@ public class MageEnemy : MonoBehaviour
         float dist = Vector2.Distance(transform.position, _player.position);
         _attackTimer -= Time.deltaTime;
 
+        // Actualiza path A* cada intervalo
+        _pathTimer -= Time.deltaTime;
+        if (_pathTimer <= 0f && PathfindingGrid.Instance != null)
+        {
+            RecalculatePath(dist);
+            _pathTimer = pathUpdateInterval;
+        }
+
         UpdateStateMachine(dist);
     }
 
-    // ─── Máquina de estados ───────────────────────────────────────────────────
+    // ─── Recálculo de ruta A* ─────────────────────────────────────────────────
+    private void RecalculatePath(float dist)
+    {
+        Vector2 pathTarget;
 
+        if (_state == State.Retreat)
+        {
+            Vector2 fleeDir = ((Vector2)transform.position - (Vector2)_player.position).normalized;
+            pathTarget = (Vector2)transform.position + fleeDir * (preferredRange + 2f);
+        }
+        else
+        {
+            pathTarget = _player.position;
+        }
+
+        _currentPathTarget = pathTarget;
+        _path      = PathfindingGrid.Instance.FindPath(transform.position, pathTarget);
+        _pathIndex = 0;
+    }
+
+    // ─── Movimiento por A* ────────────────────────────────────────────────────
+    private void FollowCurrentPath(float speed)
+    {
+        if (_path != null && _pathIndex < _path.Count)
+        {
+            Vector2 wp  = _path[_pathIndex];
+            Vector2 dir = (wp - (Vector2)transform.position).normalized;
+            _rb.linearVelocity = dir * speed;
+            if (Vector2.Distance(transform.position, wp) < 0.35f) _pathIndex++;
+        }
+        else
+        {
+            Vector2 dir = (_currentPathTarget - (Vector2)transform.position).normalized;
+            _rb.linearVelocity = dir * speed;
+        }
+    }
+
+    // ─── Máquina de estados ───────────────────────────────────────────────────
     private void UpdateStateMachine(float dist)
     {
         switch (_state)
         {
-            // ── Idle: espera hasta detectar al jugador ─────────────────────────
-            case State.Idle:
-                _rb.linearVelocity = Vector2.zero;
-                if (dist <= detectionRange)
-                    _state = dist <= attackRange ? State.Attack : State.Chase;
-                break;
-
-            // ── Chase: avanza hacia el jugador hasta entrar en rango ───────────
+            // Chase: siempre persigue al jugador hasta entrar en rango
             case State.Chase:
-                if (dist > detectionRange) { _state = State.Idle; break; }
-                if (dist < retreatDistance) { _state = State.Retreat; break; }
-                if (dist <= attackRange) { _state = State.Attack; break; }
-
-                MoveToward(_player.position, chaseSpeed);
+                if (dist < retreatDistance) { _state = State.Retreat; _pathTimer = 0f; break; }
+                if (dist <= attackRange)    { _state = State.Attack;  _pathTimer = 0f; break; }
+                FollowCurrentPath(chaseSpeed);
                 break;
 
-            // ── Attack: se queda en preferredRange y dispara ───────────────────
+            // Attack: mantiene preferredRange y dispara
             case State.Attack:
-                if (dist > detectionRange) { _state = State.Idle; break; }
-                if (dist > attackRange) { _state = State.Chase; break; }
-                if (dist < retreatDistance) { _state = State.Retreat; break; }
-
+                if (dist > attackRange)     { _state = State.Chase;   _pathTimer = 0f; break; }
+                if (dist < retreatDistance) { _state = State.Retreat; _pathTimer = 0f; break; }
                 AdjustPreferredDistance(dist);
-
-                if (_attackTimer <= 0f)
-                {
-                    ShootAtPlayer();
-                    _attackTimer = attackCooldown;
-                }
+                if (_attackTimer <= 0f) { ShootAtPlayer(); _attackTimer = attackCooldown; }
                 break;
 
-            // ── Retreat: huye del jugador ──────────────────────────────────────
+            // Retreat: huye del jugador
             case State.Retreat:
-                if (dist > detectionRange) { _state = State.Idle; break; }
-                if (dist >= preferredRange) { _state = State.Attack; break; }
-
-                Vector2 fleeDir = ((Vector2)transform.position - (Vector2)_player.position).normalized;
-                _rb.linearVelocity = fleeDir * retreatSpeed;
-
-                // Puede seguir disparando mientras huye
-                if (_attackTimer <= 0f)
-                {
-                    ShootAtPlayer();
-                    _attackTimer = attackCooldown;
-                }
+                if (dist >= preferredRange) { _state = State.Attack; _pathTimer = 0f; break; }
+                FollowCurrentPath(retreatSpeed);
+                if (_attackTimer <= 0f) { ShootAtPlayer(); _attackTimer = attackCooldown; }
                 break;
         }
     }
 
-    // ─── Helpers de movimiento ────────────────────────────────────────────────
-
-    private void MoveToward(Vector3 targetPos, float speed)
-    {
-        Vector2 dir = ((Vector2)targetPos - (Vector2)transform.position).normalized;
-        _rb.linearVelocity = dir * speed;
-    }
-
-    /// <summary>Ajusta posición para quedarse en preferredRange.</summary>
+    // ─── Ajuste de distancia en ataque (A*) ──────────────────────────────────
     private void AdjustPreferredDistance(float dist)
     {
         float tolerance = 1.2f;
 
         if (dist > preferredRange + tolerance)
         {
-            MoveToward(_player.position, chaseSpeed * 0.6f);
+            FollowCurrentPath(chaseSpeed * 0.6f);
         }
         else if (dist < preferredRange - tolerance)
         {
-            Vector2 backDir = ((Vector2)transform.position - (Vector2)_player.position).normalized;
-            _rb.linearVelocity = backDir * chaseSpeed * 0.6f;
+            if (_path == null || _pathIndex >= _path.Count)
+            {
+                Vector2 backDir = ((Vector2)transform.position - (Vector2)_player.position).normalized;
+                _currentPathTarget = (Vector2)transform.position + backDir * 3f;
+                if (PathfindingGrid.Instance != null)
+                {
+                    _path      = PathfindingGrid.Instance.FindPath(transform.position, _currentPathTarget);
+                    _pathIndex = 0;
+                }
+            }
+            FollowCurrentPath(chaseSpeed * 0.6f);
         }
         else
         {
@@ -186,42 +204,26 @@ public class MageEnemy : MonoBehaviour
     }
 
     // ─── Disparo ──────────────────────────────────────────────────────────────
-
     private void ShootAtPlayer()
     {
         if (projectilePrefab == null || _player == null) return;
-
         Vector2 dir = ((Vector2)_player.position - (Vector2)transform.position).normalized;
-
         GameObject proj = Instantiate(projectilePrefab, transform.position, Quaternion.identity);
         if (proj.TryGetComponent<MageProjectile>(out var mp))
             mp.Init(dir, damageToPlayer);
     }
 
     // ─── Daño y muerte ────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Recibe daño. Fireball.cs actualizado llama enemy.TakeDamage(amount) directamente.
-    /// </summary>
     public void TakeDamage(int amount)
     {
         if (_state == State.Dead) return;
 
         _currentHealth -= amount;
 
-        // Actualización visual de la barra
         if (healthBarSlider != null)
-        {
-            // Calculamos el porcentaje. Usamos (float) para evitar que la división de enteros de 0.
-            float porcentajeVida = (float)_currentHealth / (float)maxHealth;
-            healthBarSlider.value = porcentajeVida;
+            healthBarSlider.value = (float)_currentHealth / (float)maxHealth;
 
-            // Debug para verificar en la consola si el valor está bajando realmente
-            //Debug.Log($"Mago herido. Vida: {_currentHealth}/{maxHealth}. Slider seteado en: {porcentajeVida}");
-        }
-
-        if ( _currentHealth <= 0)
-            Die();
+        if (_currentHealth <= 0) Die();
     }
 
     private void Die()
@@ -229,13 +231,8 @@ public class MageEnemy : MonoBehaviour
         _state = State.Dead;
         _rb.linearVelocity = Vector2.zero;
 
-        // Da puntos al jugador, igual que MeleeHunter
-        if (_player != null)
-        {
-            Player playerScript = _player.GetComponent<Player>();
-            playerScript?.AddPoints(pointsToGive);
-        }
-
+        _playerScript?.AddPoints(pointsToGive);
+        LevelManager.Instance?.OnEnemyKilled();
         Destroy(gameObject);
     }
 
@@ -243,8 +240,6 @@ public class MageEnemy : MonoBehaviour
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
         Gizmos.color = new Color(1f, 0.5f, 0f);
         Gizmos.DrawWireSphere(transform.position, attackRange);
         Gizmos.color = Color.cyan;
@@ -254,4 +249,3 @@ public class MageEnemy : MonoBehaviour
     }
 #endif
 }
-

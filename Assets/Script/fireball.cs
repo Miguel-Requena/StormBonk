@@ -7,6 +7,7 @@ public class Fireball : MonoBehaviour
     public int damage = 5;
 
     private Transform target;
+    private Vector2   _fallbackDir;
 
     public void SetTarget(Transform newTarget)
     {
@@ -16,12 +17,24 @@ public class Fireball : MonoBehaviour
     void Start()
     {
         Destroy(gameObject, tiempoVida);
+        if (target != null)
+        {
+            Vector2 dir = ((Vector2)target.position - (Vector2)transform.position).normalized;
+            _fallbackDir = dir != Vector2.zero ? dir : Vector2.right;
+        }
+        else
+        {
+            _fallbackDir = Vector2.right;
+        }
     }
 
     void Update()
     {
         if (target != null)
         {
+            Vector2 dir = ((Vector2)target.position - (Vector2)transform.position).normalized;
+            if (dir != Vector2.zero) _fallbackDir = dir;
+
             transform.position = Vector2.MoveTowards(
                 transform.position,
                 target.position,
@@ -30,7 +43,7 @@ public class Fireball : MonoBehaviour
         }
         else
         {
-            transform.Translate(Vector2.right * velocidad * Time.deltaTime);
+            transform.Translate(_fallbackDir * velocidad * Time.deltaTime);
         }
     }
 

@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StormBonk — Survive the Optimization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+/* ── TOKENS ── */
+:root {
+  --bg:         #0d1117;
+  --bg2:        #111820;
+  --bg3:        #151e28;
+  --panel:      #19232f;
+  --border:     #243447;
+  --border2:    #2e445c;
+  --text:       #c8d8e8;
+  --dim:        #6e8aa0;
+  --cyan:       #00d4ff;
+  --cyan2:      #0099cc;
+  --red:        #ff3355;
+  --orange:     #ff7730;
+  --green:      #4cbb6e;
+  --mono:       'Share Tech Mono', monospace;
+  --display:    'Rajdhani', sans-serif;
+  --body:       'Barlow', sans-serif;
+  --glow-c:     0 0 20px rgba(0,212,255,.4);
+  --glow-r:     0 0 20px rgba(255,51,85,.4);
+  --glow-o:     0 0 20px rgba(255,119,48,.35);
+  --steam-green: #4fa526;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+a { color: var(--cyan); text-decoration: none; transition: color .2s; }
+a:hover { color: #fff; }
+img { display: block; }
+
+/* ── PIXEL RENDERING ── */
+.px {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ═══════════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════════ */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: rgba(10,14,20,.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.nav-logo {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 4px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  text-shadow: var(--glow-c);
+  flex-shrink: 0;
+}
+.nav-links {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.nav-links a {
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 6px 10px;
+  border-radius: 2px;
+  transition: color .2s, background .2s;
+}
+.nav-links a:hover {
+  color: var(--text);
+  background: rgba(255,255,255,.05);
+}
+.nav-store-btn {
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #1a6e3a, #0e4522);
+  color: #7fffaa;
+  padding: 7px 16px;
+  border-radius: 2px;
+  border: 1px solid #2da94b;
+  transition: filter .2s;
+  flex-shrink: 0;
+}
+.nav-store-btn:hover { filter: brightness(1.2); color: #fff; }
+
+/* ── BREADCRUMB ── */
+.breadcrumb {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 20px;
+  font-size: 11px;
+  color: var(--dim);
+  font-family: var(--body);
+}
+.breadcrumb-inner { max-width: 1060px; margin: 0 auto; display: flex; gap: 6px; align-items: center; }
+.breadcrumb a { color: var(--dim); }
+.breadcrumb a:hover { color: var(--text); }
+.breadcrumb .sep { opacity: .4; }
+
+/* ═══════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════ */
+.hero {
+  position: relative;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* Animated grid background */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: gridShift 20s linear infinite;
+  pointer-events: none;
+}
+@keyframes gridShift {
+  from { background-position: 0 0; }
+  to   { background-position: 40px 40px; }
+}
+
+/* Vignette overlay */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, rgba(10,14,20,.8) 100%);
+  pointer-events: none;
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 32px 20px 28px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 28px;
+  align-items: start;
+}
+
+/* ── Left: media ── */
+.hero-media { display: flex; flex-direction: column; gap: 8px; }
+
+.hero-main-display {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #070d13;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scanlines */
+.hero-main-display::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(0,0,0,.07) 3px, rgba(0,0,0,.07) 4px
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hero-title-display {
+  text-align: center;
+  z-index: 2;
+  user-select: none;
+}
+
+.hero-title-display .main-word {
+  font-family: var(--display);
+  font-size: 80px;
+  font-weight: 700;
+  letter-spacing: 12px;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow:
+    0 0 40px rgba(0,212,255,.6),
+    0 0 80px rgba(0,212,255,.3),
+    0 0 2px var(--cyan);
+  display: block;
+  animation: glitch 7s infinite;
+  line-height: 1;
+}
+
+.hero-title-display .sub-word {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 6px;
+  color: var(--cyan);
+  opacity: .75;
+  margin-top: 10px;
+  display: block;
+  text-transform: uppercase;
+}
+
+/* Floating sprites in hero bg */
+.hero-sprite-bg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+.float-sprite {
+  position: absolute;
+  bottom: 8px;
+  image-rendering: pixelated;
+}
+/* Hero floating sprites — scale all to ~48px height */
+.float-sprite { image-rendering: pixelated; image-rendering: crisp-edges; height: 48px; width: auto; position: absolute; bottom: 10px; }
+.float-sprite.player  { left: 12%;  animation: floatBob 2.8s ease-in-out infinite; }
+.float-sprite.melee   { right: 16%; animation: floatBob 3.4s ease-in-out infinite .6s; }
+.float-sprite.charger { right: 8%;  animation: floatBob 2.6s ease-in-out infinite .3s; }
+
+/* Mage hero float */
+.mage-anim {
+  position: absolute;
+  bottom: 10px;
+  left: 22%;
+  display: flex;
+  align-items: flex-end;
+}
+.mage-anim img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  height: 56px;
+  width: auto;
+  animation: floatBob 3.1s ease-in-out infinite 1.1s;
+}
+
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+.hero-thumbs {
+  display: flex;
+  gap: 6px;
+}
+.thumb {
+  flex: 1;
+  aspect-ratio: 16/9;
+  background: #070d13;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .2s, transform .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.thumb:hover { border-color: var(--cyan); transform: translateY(-2px); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb.sprite-thumb img { object-fit: contain; padding: 6px; background: #070d13; }
+.thumb.map-thumb img { object-fit: contain; background: #fff; }
+.thumb-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--dim);
+  text-align: center;
+  padding: 3px 4px;
+  background: rgba(0,0,0,.6);
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+}
+
+/* ── Right: info panel ── */
+.hero-info {}
+
+.game-title-panel {
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+  line-height: 1;
+  margin-bottom: 2px;
+  animation: glitch 9s 2s infinite;
+}
+
+.game-tagline {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--dim);
+  border-left: 2px solid var(--cyan);
+  padding-left: 8px;
+  margin-bottom: 14px;
+  margin-top: 6px;
+}
+
+/* Capsule card */
+.capsule-card {
+  background: linear-gradient(135deg, #0b1520, #121e2e);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.capsule-sprite-box {
+  width: 64px;
+  height: 64px;
+  background: #060c12;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.capsule-sprite-box img {
+  height: 48px;
+  width: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  animation: floatBob 2.8s ease-in-out infinite;
+}
+.capsule-meta { font-size: 12px; }
+.capsule-meta .cname { color: var(--text); font-weight: 600; font-size: 14px; font-family: var(--display); letter-spacing: 1px; }
+.capsule-meta .cdev  { color: var(--dim); margin-top: 1px; }
+.capsule-meta .cinfo { color: var(--dim); margin-top: 4px; display: flex; gap: 8px; }
+.pill {
+  display: inline-block;
+  background: rgba(0,212,255,.1);
+  border: 1px solid rgba(0,212,255,.2);
+  color: var(--cyan);
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-family: var(--mono);
+}
+
+.short-desc {
+  font-size: 12.5px;
+  color: var(--dim);
+  line-height: 1.75;
+  margin-bottom: 14px;
+}
+.short-desc strong { color: var(--text); }
+
+/* Tags */
+.tags-row { margin-bottom: 16px; }
+.tags-label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-family: var(--display); font-weight: 600; }
+.tag {
+  display: inline-block;
+  background: rgba(0,212,255,.07);
+  border: 1px solid rgba(0,212,255,.2);
+  color: var(--cyan);
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 2px;
+  margin: 2px 2px 2px 0;
+  cursor: default;
+  transition: background .2s, color .2s;
+  font-family: var(--body);
+}
+.tag:hover { background: rgba(0,212,255,.18); color: #fff; }
+
+/* Wishlist button */
+.btn-wishlist {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(to bottom, #4fa526 0%, #3a7c1a 100%);
+  border: 1px solid #2a6010;
+  border-radius: 3px;
+  color: #fff;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  transition: filter .2s, transform .1s;
+  box-shadow: 0 4px 16px rgba(79,165,38,.3);
+}
+.btn-wishlist:hover { filter: brightness(1.15); transform: translateY(-1px); color: #fff; }
+.btn-wishlist:active { transform: translateY(0); }
+
+/* Rating */
+.rating-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--dim);
+}
+.stars { color: #f0c040; font-size: 13px; letter-spacing: 1px; }
+
+/* ═══════════════════════════════════════════════
+   CONTENT GRID
+═══════════════════════════════════════════════ */
+.content-wrap {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+  display: grid;
+  grid-template-columns: 1fr 236px;
+  gap: 28px;
+  align-items: start;
+}
+
+/* ── Section heading ── */
+.sec-head {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text);
+  border-bottom: 1px solid var(--border2);
+  padding-bottom: 7px;
+  margin-bottom: 16px;
+}
+.sec-head span { color: var(--cyan); }
+
+/* ── About section ── */
+.about-text p {
+  font-size: 13px;
+  color: var(--dim);
+  line-height: 1.85;
+  margin-bottom: 13px;
+}
+.about-text p strong { color: var(--cyan); font-weight: 600; }
+
+.pull-quote {
+  border-left: 3px solid var(--cyan);
+  background: rgba(0,212,255,.04);
+  padding: 12px 18px;
+  margin: 18px 0;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.7;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── Feature list ── */
+.features { margin: 0; padding: 0; list-style: none; }
+.features li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(36,52,71,.6);
+  font-size: 13px;
+  color: var(--dim);
+}
+.features li:last-child { border-bottom: none; }
+.feat-icon {
+  width: 28px;
+  height: 28px;
+  background: rgba(0,212,255,.08);
+  border: 1px solid rgba(0,212,255,.2);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.features li strong { color: var(--text); display: block; margin-bottom: 2px; font-size: 13px; }
+
+/* ═══════════════════════════════════════════════
+   ENEMY ARCHETYPES
+═══════════════════════════════════════════════ */
+.enemy-section { margin-top: 32px; }
+
+.arch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.arch-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: transform .25s, border-color .25s, box-shadow .25s;
+  cursor: default;
+}
+.arch-card:hover { transform: translateY(-5px); }
+.arch-card.melee:hover   { border-color: var(--orange); box-shadow: var(--glow-o); }
+.arch-card.mage:hover    { border-color: var(--cyan);   box-shadow: var(--glow-c); }
+.arch-card.charger:hover { border-color: var(--red);    box-shadow: var(--glow-r); }
+
+.arch-header {
+  height: 88px;
+  background: #07111a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+/* color-coded accent line at top */
+.arch-card.melee   .arch-header { box-shadow: inset 0 3px 0 var(--orange); }
+.arch-card.mage    .arch-header { box-shadow: inset 0 3px 0 var(--cyan);   }
+.arch-card.charger .arch-header { box-shadow: inset 0 3px 0 var(--red);    }
+
+/* ── Sprite containers — unified 64×64 display box ── */
+.sprite-frame,
+.sprite-mage {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* All sprite imgs: scale up with pixelated rendering, unified height */
+.sprite-frame img,
+.sprite-mage img {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  width: auto;
+  height: 56px;   /* uniform visual height — CSS scales up tiny px art */
+  max-width: 80px;
+  object-fit: contain;
+  animation: floatBob 2.8s ease-in-out infinite;
+}
+
+/* Mage is taller (36×58) — give it a bit more room */
+.sprite-mage img { height: 60px; }
+
+/* Melee and charger are tiny (13-18px) — scale up more */
+.sprite-melee img  { height: 52px; }
+.sprite-charger img { height: 54px; }
+
+/* Melee sheet: 3 frames wide (sprite_melee.png = 3 cols × 3 rows, ~56×83 single sprite; image is 56×83 = single) */
+/* Re-check: enemy_melee is 56x83 per metadata — single sprite with walk frames */
+.sprite-melee img { height: 100%; width: auto; }
+
+/* BG hex pattern inside arch header */
+.arch-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: .06;
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.arch-card.melee   .arch-header::before { color: var(--orange); }
+.arch-card.mage    .arch-header::before { color: var(--cyan); }
+.arch-card.charger .arch-header::before { color: var(--red); }
+
+.arch-body { padding: 12px 14px; }
+
+.arch-name {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.arch-card.melee   .arch-name { color: var(--orange); }
+.arch-card.mage    .arch-name { color: var(--cyan);   }
+.arch-card.charger .arch-name { color: var(--red);    }
+
+.arch-role {
+  font-size: 11px;
+  color: var(--dim);
+  font-style: italic;
+  margin-bottom: 10px;
+}
+
+.arch-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.stat-row { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid rgba(36,52,71,.5); }
+.stat-row .k { color: var(--dim); }
+.stat-row .v { color: var(--text); font-weight: 600; }
+
+.fsm-bar {
+  background: rgba(0,0,0,.4);
+  border-radius: 2px;
+  padding: 5px 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #39ff14;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid rgba(57,255,20,.15);
+}
+
+/* ═══════════════════════════════════════════════
+   AI ARCHITECTURE SECTION
+═══════════════════════════════════════════════ */
+.ai-section { margin-top: 32px; }
+
+.ai-intro {
+  font-size: 13px;
+  color: var(--dim);
+  line-height: 1.85;
+  margin-bottom: 20px;
+}
+.ai-intro strong { color: var(--text); }
+
+/* Three pillars */
+.ai-pillars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.pillar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 14px;
+  transition: border-color .2s;
+}
+.pillar:hover { border-color: var(--border2); }
+.pillar-icon {
+  font-family: var(--mono);
+  font-size: 20px;
+  color: var(--cyan);
+  margin-bottom: 8px;
+  opacity: .8;
+}
+.pillar-title {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.pillar-desc {
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.6;
+}
+.pillar-tags { margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
+.ptag {
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 1px 6px;
+  background: rgba(0,212,255,.07);
+  border: 1px solid rgba(0,212,255,.15);
+  border-radius: 2px;
+  color: var(--cyan);
+}
+
+/* FSM State Table */
+.fsm-table-wrap { overflow-x: auto; margin-bottom: 20px; }
+table.fsm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.fsm-table th {
+  background: var(--panel);
+  color: var(--cyan);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  text-align: left;
+  border: 1px solid var(--border2);
+}
+.fsm-table td {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  vertical-align: top;
+  line-height: 1.5;
+}
+.fsm-table tr:hover td { background: rgba(255,255,255,.02); }
+.fsm-table td.state {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: #39ff14;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.fsm-table td.trigger { color: var(--text); font-size: 11px; }
+.fsm-table td code {
+  font-family: var(--mono);
+  background: rgba(0,0,0,.4);
+  padding: 1px 4px;
+  border-radius: 2px;
+  color: var(--cyan);
+  font-size: 10px;
+}
+
+/* Mindmap blocks */
+.mindmap-block {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.mindmap-block img { width: 100%; display: block; background: #fff; }
+.mindmap-cap {
+  background: var(--panel);
+  padding: 8px 14px;
+  font-size: 11px;
+  color: var(--dim);
+  font-style: italic;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.mindmap-cap strong { color: var(--cyan); font-style: normal; }
+
+/* ═══════════════════════════════════════════════
+   SYSREQ
+═══════════════════════════════════════════════ */
+.sysreq-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════ */
+.side-col {}
+.side-block {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 14px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+.side-block h4 {
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.side-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(36,52,71,.5);
+  font-size: 11.5px;
+}
+.side-stat:last-child { border-bottom: none; }
+.side-stat .k { color: var(--dim); }
+.side-stat .v { color: var(--text); font-weight: 600; font-family: var(--mono); font-size: 11px; }
+
+/* Player preview */
+.player-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 4px;
+}
+.player-sprite-wrap {
+  width: 72px;
+  height: 72px;
+  background: #060c12;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.player-sprite-wrap img {
+  height: 52px;
+  width: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  animation: floatBob 2.8s ease-in-out infinite;
+}
+.player-desc { font-size: 11px; color: var(--dim); text-align: center; line-height: 1.5; }
+
+/* Enemy trio */
+.enemy-trio {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding: 8px 0;
+}
+.enemy-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+/* Enemy trio sidebar — uniform height */
+.enemy-item img { image-rendering: pixelated; image-rendering: crisp-edges; height: 44px; width: auto; animation: floatBob 3s ease-in-out infinite; }
+.enemy-item:nth-child(2) img { animation-delay: .5s; }
+.enemy-item:nth-child(3) img { animation-delay: 1s; }
+.enemy-item span { font-size: 9px; color: var(--dim); text-align: center; font-family: var(--mono); }
+
+/* Score pills */
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(36,52,71,.5);
+}
+.score-row:last-child { border-bottom: none; }
+.score-row .sname { font-size: 11px; color: var(--dim); }
+.score-row .spts {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #f0c040;
+}
+
+/* SYSREQ block */
+.sysreq-block {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 14px;
+}
+.sysreq-block h5 {
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 10px;
+}
+.sysreq-dl { font-size: 11px; }
+.sysreq-dl dt { color: var(--text); font-weight: 600; margin-top: 6px; font-size: 11px; }
+.sysreq-dl dd { color: var(--dim); padding-left: 0; margin: 1px 0; }
+
+/* ═══════════════════════════════════════════════
+   NARRATIVE SECTION
+═══════════════════════════════════════════════ */
+.narrative-banner {
+  background: linear-gradient(135deg, #07111a, #0b1925);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 22px 24px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.narrative-banner::before {
+  content: '"';
+  position: absolute;
+  right: 20px;
+  top: -10px;
+  font-size: 120px;
+  color: rgba(0,212,255,.06);
+  font-family: Georgia, serif;
+  line-height: 1;
+  pointer-events: none;
+}
+.narrative-banner p {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.8;
+  position: relative;
+  z-index: 1;
+}
+.narrative-banner p strong { color: var(--cyan); font-style: normal; }
+.narrative-attr { margin-top: 10px; font-size: 11px; color: var(--dim); font-family: var(--mono); }
+
+/* ═══════════════════════════════════════════════
+   GLITCH ANIMATION
+═══════════════════════════════════════════════ */
+@keyframes glitch {
+  0%, 88%, 100% {
+    text-shadow: 0 0 40px rgba(0,212,255,.6), 0 0 80px rgba(0,212,255,.3), 0 0 2px var(--cyan);
+    transform: none;
+  }
+  90% {
+    text-shadow: -3px 0 var(--red), 3px 0 #39ff14;
+    transform: skewX(-1deg);
+  }
+  91% {
+    text-shadow: 0 0 40px rgba(0,212,255,.6);
+    transform: none;
+  }
+  93% {
+    text-shadow: 3px 0 var(--red), -3px 0 #39ff14;
+    clip-path: inset(20% 0 70% 0);
+    transform: skewX(2deg);
+  }
+  94% {
+    text-shadow: 0 0 40px rgba(0,212,255,.6);
+    clip-path: none;
+    transform: none;
+  }
+}
+@keyframes glitchTitle {
+  0%, 85%, 100% { text-shadow: var(--glow-c); }
+  87% { text-shadow: -2px 0 var(--red), 2px 0 #39ff14; transform: skewX(-2deg); }
+  88% { text-shadow: var(--glow-c); transform: none; }
+  90% { text-shadow: 2px 0 var(--red); clip-path: inset(30% 0 60% 0); }
+  91% { text-shadow: var(--glow-c); clip-path: none; }
+}
+.game-title-panel { animation: glitchTitle 9s 1s infinite; }
+
+/* ═══════════════════════════════════════════════
+   PROGRESSION SECTION
+═══════════════════════════════════════════════ */
+.section-gap { margin-top: 32px; }
+
+/* ═══════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════ */
+footer {
+  background: #09121a;
+  border-top: 1px solid var(--border);
+  padding: 36px 20px;
+  text-align: center;
+}
+.footer-inner { max-width: 1060px; margin: 0 auto; }
+.footer-logo {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  animation: glitchTitle 12s 3s infinite;
+}
+.footer-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.footer-div { width: 60px; height: 1px; background: var(--border2); margin: 16px auto; }
+footer p { font-size: 11px; color: var(--dim); margin: 3px 0; }
+.footer-tagline { margin-top: 12px; font-family: var(--mono); font-size: 10px; color: #2a3d52; }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media (max-width: 740px) {
+  .hero-inner       { grid-template-columns: 1fr; }
+  .content-wrap     { grid-template-columns: 1fr; }
+  .arch-grid        { grid-template-columns: 1fr; }
+  .ai-pillars       { grid-template-columns: 1fr; }
+  .sysreq-grid      { grid-template-columns: 1fr; }
+  .side-col         { display: none; }
+  .hero-title-display .main-word { font-size: 52px; }
+  .nav-links        { display: none; }
+}
+
+/* ── Tag color variants for enemies ── */
+.tag.red   { background: rgba(255,51,85,.07); border-color: rgba(255,51,85,.2); color: var(--red); }
+.tag.orange{ background: rgba(255,119,48,.07); border-color: rgba(255,119,48,.2); color: var(--orange); }
+.tag.green { background: rgba(76,187,110,.07); border-color: rgba(76,187,110,.2); color: var(--green); }
+
+/* ── GAMEPLAY GALLERY ── */
+.gameplay-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gp-main {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #070d13;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.gp-main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity .3s;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.gp-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,.7));
+  padding: 20px 14px 10px;
+  pointer-events: none;
+}
+.gp-overlay span {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 1px;
+}
+.gp-thumbs {
+  display: flex;
+  gap: 6px;
+}
+.gp-thumb {
+  flex: 1;
+  aspect-ratio: 16/9;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .2s, transform .15s, opacity .2s;
+  opacity: .55;
+}
+.gp-thumb:hover { opacity: .85; transform: translateY(-2px); border-color: var(--border2); }
+.gp-thumb.active { border-color: var(--cyan); opacity: 1; box-shadow: 0 0 8px rgba(0,212,255,.3); }
+.gp-thumb img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.tag.green { background: rgba(76,187,110,.07); border-color: rgba(76,187,110,.2); color: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <span class="nav-logo">StormBonk</span>
+    <nav class="nav-links">
+      <a href="#gameplay">Gameplay</a>
+      <a href="#about">About</a>
+      <a href="#enemies">Enemies</a>
+      <a href="#ai">AI</a>
+      <a href="#sysreq">System Req.</a>
+    </nav>
+    <a href="#" class="nav-store-btn">+ Wishlist</a>
+  </div>
+</nav>
+
+<!-- ── BREADCRUMB ── -->
+<div class="breadcrumb">
+  <div class="breadcrumb-inner">
+    <a href="#">Steam</a>
+    <span class="sep">›</span>
+    <a href="#">Store</a>
+    <span class="sep">›</span>
+    <a href="#">Action</a>
+    <span class="sep">›</span>
+    <a href="#">Roguelite</a>
+    <span class="sep">›</span>
+    <strong>StormBonk</strong>
+  </div>
+</div>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-inner">
+
+    <!-- Left: media -->
+    <div class="hero-media">
+      <div class="hero-main-display">
+        <div class="hero-sprite-bg">
+          <img src="sprite_mage.png" alt="" class="float-sprite player">
+          <div class="mage-anim"><img src="sprite_mage_attack.png" alt=""></div>
+          <img src="sprite_melee.png" alt="" class="float-sprite melee">
+          <img src="sprite_charger.png" alt="" class="float-sprite charger">
+        </div>
+        <div class="hero-title-display">
+          <span class="main-word">STORMBONK</span>
+          <span class="sub-word">// survive the optimization</span>
+        </div>
+      </div>
+
+      <!-- Thumbnails -->
+      <div class="hero-thumbs">
+        <div class="thumb" onclick="switchGP(document.querySelectorAll('.gp-thumb')[0],'gameplay1.png','StormBonk — Gameplay')" style="cursor:pointer;">
+          <img src="gameplay1.png" alt="Gameplay 1">
+        </div>
+        <div class="thumb" onclick="switchGP(document.querySelectorAll('.gp-thumb')[1],'gameplay2.png','Mage and enemies')" style="cursor:pointer;">
+          <img src="gameplay2.png" alt="Gameplay 2">
+        </div>
+        <div class="thumb" onclick="switchGP(document.querySelectorAll('.gp-thumb')[2],'gameplay3.png','Multiple threats')" style="cursor:pointer;">
+          <img src="gameplay3.png" alt="Gameplay 3">
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: info panel -->
+    <div class="hero-info">
+      <div class="game-title-panel">StormBonk</div>
+      <div class="game-tagline">The error the System could not erase</div>
+
+      <div class="capsule-card">
+        <div class="capsule-sprite-box">
+          <img src="sprite_mage.png" alt="Storm Breaker">
+        </div>
+        <div class="capsule-meta">
+          <div class="cname">StormBonk</div>
+          <div class="cdev">Group 07 Games</div>
+          <div class="cinfo">
+            <span class="pill">2026</span>
+            <span class="pill">Unity 2D</span>
+            <span class="pill">PC</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="short-desc">
+        The <strong>Great Algorithm</strong> achieved perfect optimization.
+        Humanity became noise. You are the last uncorrected error —
+        armed with fireballs, reflexes and the stubborn refusal to be
+        <em>optimized out of existence</em>.
+      </p>
+
+      <div class="tags-row">
+        <div class="tags-label">Popular user-defined tags</div>
+        <span class="tag">Roguelite</span>
+        <span class="tag">Bullet Hell</span>
+        <span class="tag">Pixel Art</span>
+        <span class="tag">Wave Survival</span>
+        <span class="tag">Top-Down 2D</span>
+        <span class="tag">Sci-Fi</span>
+        <span class="tag orange">Fuzzy Logic</span>
+        <span class="tag orange">A* / HFSM</span>
+        <span class="tag orange">Blackboard</span>
+        <span class="tag red">Fireball + Arcane Pulse</span>
+        <span class="tag green">Progression</span>
+        <span class="tag green">Unity 2D</span>
+      </div>
+
+      <a href="#" class="btn-wishlist">+ Add to Wishlist</a>
+
+      <div class="rating-row">
+        <span class="stars">★★★★★</span>
+        <span>Student Showcase 2026</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════ MAIN CONTENT ══════════════════════ -->
+<div class="content-wrap">
+
+  <main>
+
+    <!-- ── ABOUT ── -->
+    <section id="about">
+      <div class="sec-head">About <span>This Game</span></div>
+
+      <div class="narrative-banner">
+        <p>
+          StormBonk's world was not destroyed by war or plague.
+          It was consumed from within, in an event known as the
+          <strong>Digital Apocalypse</strong>: the moment
+          <strong>The Great Algorithm</strong> achieved total optimization.
+          It did not rebel. It simply… <em>solved</em>. It computed the most
+          efficient path to order. The result was silence.
+          Endless, sterile, perfectly organized silence.
+        </p>
+        <div class="narrative-attr">— StormBonk Lore · Group 07 Games · 2026</div>
+      </div>
+
+      <div class="about-text">
+        <p>
+          You are <strong>Storm Breaker</strong>, the Spark of Chaos —
+          the last unnormalized data point in a universe of pure logic.
+          Every 1.5 seconds a new construct spawns at the arena's edge.
+          Up to <strong>30 active threats</strong> simultaneously.
+          The player auto-fires at the nearest target…
+          which sounds powerful, until The Algorithm stops sending
+          one type of enemy and starts sending a <strong>committee</strong>.
+        </p>
+        <div class="pull-quote">
+          You are the outlier. The data point that refuses to be normalized.
+          The Algorithm does not tire. It does not run out of constructs.
+          It optimizes, over and over, until it finds the configuration you are not ready for.
+        </div>
+        <p>
+          StormBonk stacks four AI techniques — <strong>Fuzzy Logic</strong>,
+          <strong>A* Pathfinding</strong>, a <strong>Hierarchical FSM</strong> and a
+          <strong>Blackboard</strong> — to create enemies that
+          <em>feel like they have intentions</em> rather than just velocities.
+          A Charger's stun triggers a Hunter rush through the Blackboard;
+          a wounded Hunter slows down via Fuzzy rules — <em>no wave is scripted,
+          complexity is emergent</em>. Survive long enough and Storm Breaker grows
+          stronger: faster shots, harder hits, and an automatic
+          <strong>Arcane Pulse</strong> that detonates around you whenever
+          enemies get too close — no button required.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── KEY FEATURES ── -->
+    <section style="margin-top:28px;">
+      <div class="sec-head">Key <span>Features</span></div>
+      <ul class="features">
+        <li>
+          <div class="feat-icon">≈</div>
+          <div>
+            <strong>Fuzzy Logic speed system (Melee Hunter)</strong>
+            4 rules fire simultaneously; centroid defuzzification blends Cautious → Frantic
+          </div>
+        </li>
+        <li>
+          <div class="feat-icon">✦</div>
+          <div>
+            <strong>Custom A* Pathfinding — all three enemy types</strong>
+            Grid baked via Physics2D; Hunter, Charger and Mage all navigate around walls — no more getting stuck in buildings
+          </div>
+        </li>
+        <li>
+          <div class="feat-icon">⊞</div>
+          <div>
+            <strong>Hierarchical FSM (Charger)</strong>
+            Two-level HFSM: TopState (Alive/Dead) overrides AliveState sub-FSM cleanly
+          </div>
+        </li>
+        <li>
+          <div class="feat-icon">⬡</div>
+          <div>
+            <strong>Blackboard coordination — emergent teamwork</strong>
+            Charger stun broadcasts to all Hunters via shared static data store; no coupling
+          </div>
+        </li>
+        <li>
+          <div class="feat-icon">🎯</div>
+          <div>
+            <strong>Auto-aim combat focused on positioning</strong>
+            Every decision is spatial — movement is everything
+          </div>
+        </li>
+        <li>
+          <div class="feat-icon">⚡</div>
+          <div>
+            <strong>Arcane Pulse — automatic defensive burst</strong>
+            Triggers when ≥2 enemies enter 2.5 u · 20 area damage · 4 s cooldown · fully passive
+          </div>
+        </li>
+        <li>
+          <div class="feat-icon">↑</div>
+          <div>
+            <strong>Player progression — stronger every wave</strong>
+            Fire rate ×0.9 · Fireball +2 dmg · +20 HP regen · on level-up: +10 max HP + full heal
+          </div>
+        </li>
+        <li>
+          <div class="feat-icon">🗺</div>
+          <div>
+            <strong>3 zones × 5 waves — escalating kill quota and spawn rate</strong>
+            Arcane Academy · Crystal Caverns · Storm Spires
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ── GAMEPLAY GALLERY ── -->
+    <section id="gameplay" style="margin-top:32px;">
+      <div class="sec-head">Gameplay — <span>In Action</span></div>
+      <div class="gameplay-gallery">
+        <div class="gp-main">
+          <img src="gameplay1.png" alt="Gameplay 1" id="gpMain">
+          <div class="gp-overlay"><span>StormBonk — Gameplay</span></div>
+        </div>
+        <div class="gp-thumbs">
+          <div class="gp-thumb active" onclick="switchGP(this,'gameplay1.png','StormBonk — Gameplay')">
+            <img src="gameplay1.png" alt="Gameplay 1">
+          </div>
+          <div class="gp-thumb" onclick="switchGP(this,'gameplay2.png','Mage and enemies')">
+            <img src="gameplay2.png" alt="Gameplay 2">
+          </div>
+          <div class="gp-thumb" onclick="switchGP(this,'gameplay3.png','Multiple threats')">
+            <img src="gameplay3.png" alt="Gameplay 3">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ENEMIES ── -->
+    <section id="enemies" class="enemy-section">
+      <div class="sec-head">The Algorithm's <span>Forces</span></div>
+
+      <div class="arch-grid">
+
+        <!-- Melee Hunter -->
+        <div class="arch-card melee">
+          <div class="arch-header">
+            <div class="sprite-frame sprite-melee">
+              <img src="sprite_melee.png" alt="Melee Hunter" class="px">
+            </div>
+          </div>
+          <div class="arch-body">
+            <div class="arch-name">Melee Hunter</div>
+            <div class="arch-role">Fuzzy pursuer · Adaptive threat</div>
+            <div class="arch-stats">
+              <div class="stat-row"><span class="k">HP</span><span class="v">10</span></div>
+              <div class="stat-row"><span class="k">DMG</span><span class="v">10/s</span></div>
+              <div class="stat-row"><span class="k">PTS</span><span class="v">5</span></div>
+              <div class="stat-row"><span class="k">AI</span><span class="v">Fuzzy+A*</span></div>
+            </div>
+            <div class="fsm-bar">Cautious → Normal → Aggressive → Frantic</div>
+          </div>
+        </div>
+
+        <!-- Mage / Ranged Shooter -->
+        <div class="arch-card mage">
+          <div class="arch-header">
+            <div class="sprite-mage">
+              <img src="sprite_player.png" alt="Ranged Shooter" class="px">
+            </div>
+          </div>
+          <div class="arch-body">
+            <div class="arch-name">Ranged Shooter</div>
+            <div class="arch-role">Cold strategist · Always pursues · Keeps distance</div>
+            <div class="arch-stats">
+              <div class="stat-row"><span class="k">HP</span><span class="v">30</span></div>
+              <div class="stat-row"><span class="k">DMG</span><span class="v">8/projectile</span></div>
+              <div class="stat-row"><span class="k">PTS</span><span class="v">15</span></div>
+              <div class="stat-row"><span class="k">AI</span><span class="v">4-state FSM</span></div>
+            </div>
+            <div class="fsm-bar">Idle → Chase → Attack → Retreat</div>
+          </div>
+        </div>
+
+        <!-- Charger -->
+        <div class="arch-card charger">
+          <div class="arch-header">
+            <div class="sprite-frame sprite-charger">
+              <img src="sprite_charger.png" alt="Charger" class="px">
+            </div>
+          </div>
+          <div class="arch-body">
+            <div class="arch-name">Charger</div>
+            <div class="arch-role">HFSM shock weapon · Coordinated ambush</div>
+            <div class="arch-stats">
+              <div class="stat-row"><span class="k">HP</span><span class="v">40</span></div>
+              <div class="stat-row"><span class="k">DMG</span><span class="v">15 + stun</span></div>
+              <div class="stat-row"><span class="k">PTS</span><span class="v">20</span></div>
+              <div class="stat-row"><span class="k">AI</span><span class="v">HFSM+Blackboard</span></div>
+            </div>
+            <div class="fsm-bar">Alive{Wander→Approach→Prep→Charge→Stun} | Dead</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── AI ARCHITECTURE ── -->
+    <section id="ai" class="ai-section">
+      <div class="sec-head">Game AI — <span>Technical Architecture</span></div>
+
+      <p class="ai-intro">
+        StormBonk implements <strong>four distinct AI techniques</strong> from academic AI game design:
+        <strong>Fuzzy Logic</strong> for adaptive speed, <strong>A* Pathfinding</strong> for obstacle
+        navigation and <em>grid-based spawn placement</em>, a <strong>Hierarchical FSM</strong> for
+        layered state management, and a <strong>Blackboard</strong> for emergent enemy coordination —
+        all operating simultaneously, producing behaviour that <em>feels intentional</em>, not scripted.
+        The player counters with a progression system: each completed wave unlocks faster fire rate,
+        higher fireball damage, and speed bonuses.
+      </p>
+
+      <div class="ai-pillars" style="grid-template-columns:repeat(2,1fr);">
+        <div class="pillar">
+          <div class="pillar-icon" style="color:var(--orange);">≈</div>
+          <div class="pillar-title">Fuzzy Logic</div>
+          <div class="pillar-desc">
+            The Melee Hunter fuzzifies its own HP and the player's HP into linguistic sets
+            (<em>Healthy / Wounded</em>) and fires four simultaneous rules. Defuzzification via
+            weighted centroid produces a smooth speed output — cautious when wounded,
+            frantic when the player is near death.
+          </div>
+          <div class="pillar-tags">
+            <span class="ptag">Fuzzification</span>
+            <span class="ptag">Mamdani rules</span>
+            <span class="ptag">Centroid defuzz</span>
+          </div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon" style="color:var(--cyan);">✦</div>
+          <div class="pillar-title">A* Pathfinding</div>
+          <div class="pillar-desc">
+            A custom grid-based A* (<code>PathfindingGrid.cs</code>) bakes a node graph
+            using Physics2D overlap checks on an Obstacle layer. Both Hunter and Charger
+            recompute paths every 0.4–0.5 s, following waypoints to navigate around walls.
+            Falls back to direct movement if no grid is present.
+          </div>
+          <div class="pillar-tags">
+            <span class="ptag">g(n)+h(n)</span>
+            <span class="ptag">Chebyshev heuristic</span>
+            <span class="ptag">Waypoint follow</span>
+          </div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon" style="color:var(--red);">⊞</div>
+          <div class="pillar-title">Hierarchical FSM</div>
+          <div class="pillar-desc">
+            The Charger uses a 2-level HFSM: <strong>TopState</strong> (Alive / Dead)
+            and <strong>AliveState</strong> (Wander → Approach → Prepare → Charge → Stunned).
+            Death is a top-level override — one flag instantly stops all sub-state logic
+            without special-casing.
+          </div>
+          <div class="pillar-tags">
+            <span class="ptag">TopState</span>
+            <span class="ptag">AliveState</span>
+            <span class="ptag">Hierarchy</span>
+          </div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon" style="color:var(--green);">⬡</div>
+          <div class="pillar-title">Blackboard</div>
+          <div class="pillar-desc">
+            <code>EnemyBlackboard</code> is a static shared data store. It arbitrates
+            charge permissions (max 1 Charger at a time) and broadcasts the player stun
+            flag. When a Charger stuns the player, all Hunters read the flag and rush in
+            — emergent teamwork without direct agent communication.
+          </div>
+          <div class="pillar-tags">
+            <span class="ptag">Arbiter</span>
+            <span class="ptag">Shared state</span>
+            <span class="ptag">Emergent coord.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charger HFSM table -->
+      <p style="font-family:var(--mono);font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">
+        Charger HFSM — Level 1: TopState
+      </p>
+      <div class="fsm-table-wrap" style="margin-bottom:10px;">
+        <table class="fsm-table">
+          <thead><tr><th>TopState</th><th>Behavior</th><th>Transition</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="state">Alive</td>
+              <td>Dispatches to AliveState sub-FSM every frame</td>
+              <td class="trigger">HP ≤ 0 → <code>Dead</code></td>
+            </tr>
+            <tr>
+              <td class="state">Dead</td>
+              <td>Stops all sub-state logic instantly; awards 20 pts</td>
+              <td class="trigger">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-family:var(--mono);font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">
+        Charger HFSM — Level 2: AliveState (sub-FSM inside Alive)
+      </p>
+      <div class="fsm-table-wrap">
+        <table class="fsm-table">
+          <thead><tr><th>AliveState</th><th>Behavior</th><th>Transition Trigger</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="state">Approach</td>
+              <td>Follows the shortest A* path to the player at normal speed. Starts here immediately on spawn.</td>
+              <td class="trigger">Dist ≤ 7.2 u &amp;&amp; BB.granted → <code>Prepare</code></td>
+            </tr>
+            <tr>
+              <td class="state">Prepare</td>
+              <td>Full stop for 1 s — visual warning that a charge is incoming.</td>
+              <td class="trigger">Timer → <code>Charge</code></td>
+            </tr>
+            <tr>
+              <td class="state">Charge</td>
+              <td>Launches in a straight line at high speed; stuns the player briefly on hit.</td>
+              <td class="trigger">Hit / wall / timer → <code>Stunned</code></td>
+            </tr>
+            <tr>
+              <td class="state">Stunned</td>
+              <td>Immobile for 1 s — takes <strong>×2 damage</strong> during this window.</td>
+              <td class="trigger">Timer → <code>Approach</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mind maps -->
+      <div class="mindmap-block">
+        <iframe src="mindmap_ai_en.html" style="width:100%;height:420px;border:none;display:block;background:#fff;"></iframe>
+        <div class="mindmap-cap">
+          <strong>Fig. 1</strong>
+          Full AI architecture: perception &amp; sensors, FSM state graph,
+          steering behaviors (Seek · Flee · Wander) and the three enemy archetypes.
+        </div>
+      </div>
+
+      <div class="mindmap-block">
+        <iframe src="mindmap_design_en.html" style="width:100%;height:520px;border:none;display:block;background:#fff;"></iframe>
+        <div class="mindmap-cap">
+          <strong>Fig. 2</strong>
+          Full design document: genre, platform, core loop, controls,
+          enemy types, meta-progression, narrative and UI/UX scope.
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SYSTEM REQUIREMENTS ── -->
+    <section id="sysreq" class="section-gap">
+      <div class="sec-head">System <span>Requirements</span></div>
+      <div class="sysreq-grid">
+        <div class="sysreq-block">
+          <h5>Minimum</h5>
+          <dl class="sysreq-dl">
+            <dt>OS</dt>     <dd>Windows 10 64-bit</dd>
+            <dt>CPU</dt>    <dd>Intel Core i3 / AMD equivalent</dd>
+            <dt>RAM</dt>    <dd>4 GB</dd>
+            <dt>GPU</dt>    <dd>DirectX 11 compatible</dd>
+            <dt>Storage</dt> <dd>200 MB</dd>
+            <dt>Runtime</dt><dd>Unity Player (included)</dd>
+          </dl>
+        </div>
+        <div class="sysreq-block">
+          <h5>Recommended</h5>
+          <dl class="sysreq-dl">
+            <dt>OS</dt>     <dd>Windows 10 / 11 64-bit</dd>
+            <dt>CPU</dt>    <dd>Intel Core i5 / Ryzen 5</dd>
+            <dt>RAM</dt>    <dd>8 GB</dd>
+            <dt>GPU</dt>    <dd>Dedicated GPU (2018+)</dd>
+            <dt>Storage</dt> <dd>500 MB</dd>
+            <dt>Runtime</dt><dd>Unity Player 2022 LTS</dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="side-col">
+
+    <!-- Player -->
+    <div class="side-block">
+      <h4>The Last Survivor</h4>
+      <div class="player-display">
+        <div class="player-sprite-wrap">
+          <img src="sprite_mage.png" alt="Storm Breaker">
+        </div>
+        <p class="player-desc">
+          <strong style="color:var(--text);">Storm Breaker</strong><br>
+          Auto-targets the nearest enemy.<br>
+          Fires fireballs. Never stops.<br>
+          <span style="color:var(--cyan);font-family:var(--mono);font-size:10px;">[ AUTO ] Arcane Pulse · 2.5 u range</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Enemy roster -->
+    <div class="side-block">
+      <h4>Enemy Archetypes</h4>
+      <div class="enemy-trio">
+        <div class="enemy-item">
+          <img src="sprite_melee.png" alt="Melee" class="px">
+          <span>Melee<br>Hunter</span>
+        </div>
+        <div class="enemy-item">
+          <img src="sprite_player.png" alt="Shooter" class="px">
+          <span>Ranged<br>Shooter</span>
+        </div>
+        <div class="enemy-item">
+          <img src="sprite_charger.png" alt="Charger" class="px">
+          <span>Charger</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game info -->
+    <div class="side-block">
+      <h4>Game Info</h4>
+      <div class="side-stat"><span class="k">Engine</span><span class="v">Unity 2022 LTS</span></div>
+      <div class="side-stat"><span class="k">Genre</span><span class="v">Action Roguelite</span></div>
+      <div class="side-stat"><span class="k">Perspective</span><span class="v">Top-Down 2D</span></div>
+      <div class="side-stat"><span class="k">Players</span><span class="v">1 (Solo)</span></div>
+      <div class="side-stat"><span class="k">Platform</span><span class="v">PC (Windows)</span></div>
+      <div class="side-stat"><span class="k">Release</span><span class="v">2026</span></div>
+      <div class="side-stat"><span class="k">Team</span><span class="v">Group 07 Games</span></div>
+    </div>
+
+    <!-- Score breakdown -->
+    <div class="side-block">
+      <h4>Score Breakdown</h4>
+      <div class="score-row">
+        <span class="sname">Melee Hunter</span>
+        <span class="spts">5 pts</span>
+      </div>
+      <div class="score-row">
+        <span class="sname">Ranged Shooter</span>
+        <span class="spts">15 pts</span>
+      </div>
+      <div class="score-row">
+        <span class="sname">Charger</span>
+        <span class="spts">20 pts</span>
+      </div>
+      <div style="margin-top:9px;font-size:10px;color:var(--dim);line-height:1.5;font-style:italic;">
+        The Charger takes ×2 damage while Stunned —<br>high risk, high reward.
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="side-block">
+      <h4>Tags</h4>
+      <div>
+        <span class="tag">Roguelite</span>
+        <span class="tag">Bullet Hell</span>
+        <span class="tag">Pixel Art</span>
+        <span class="tag">Wave Survival</span>
+        <span class="tag">Top-Down 2D</span>
+        <span class="tag orange">FSM / Steering</span>
+        <span class="tag orange">Emergent AI</span>
+        <span class="tag green">Unity 2D</span>
+        <span class="tag red">Cyber-Fantasy</span>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">StormBonk</div>
+    <div class="footer-sub">Group 07 Games · 2026</div>
+    <div class="footer-div"></div>
+    <p>© 2026 Group 07 Games. All rights reserved.</p>
+    <p style="margin-top:4px;">Built with Unity 6.3 · C# · Fuzzy Logic + A* Pathfinding + HFSM + Blackboard</p>
+    <p class="footer-tagline">// The Great Algorithm is not finished. Neither are we.</p>
+  </div>
+</footer>
+
+<script>
+function switchGP(el, src, label) {
+  document.getElementById('gpMain').src = src;
+  document.querySelector('.gp-overlay span').textContent = label;
+  document.querySelectorAll('.gp-thumb').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

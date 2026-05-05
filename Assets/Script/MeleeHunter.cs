@@ -1,126 +1,163 @@
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI; // Necesario para trabajar con Sliders
+using UnityEngine.UI;
 
 public class MeleeHunter : MonoBehaviour
 {
-    [Header("EstadÌsticas del Enemigo")]
+    [Header("Estad√≠sticas del Enemigo")]
     public float moveSpeed = 2f;
-    public int health = 10;
-    public int maxHealth = 10; // Salud m·xima original
-    private int currentHealth; // Salud actual
+    public int maxHealth = 10;
+    private int currentHealth;
     public int damageToPlayer = 10;
     public int pointsToGive = 5;
     public float damageRate = 1f;
 
-    private float nextDamageTime = 0f;
-    private Rigidbody2D rb;
-    private Transform target;
-    private Vector2 moveDirection;
+    [Header("L√≥gica Difusa")]
+    public float speedCauteloso = 0.8f;
+    public float speedNormal    = 2f;
+    public float speedAgresivo  = 3f;
+    public float speedFren√©tico = 5f;
+    [Tooltip("Multiplicador cuando el jugador est√° aturdido (dato le√≠do del Blackboard)")]
+    public float stunnedBonus = 1.5f;
 
-    private Animator anim;
+    [Header("Pathfinding A*")]
+    public float pathUpdateInterval = 0.4f;
+
+    private float nextDamageTime = 0f;
+
+    private Rigidbody2D rb;
+    private Transform   target;
+    private Player      playerScript;
+    private Vector2     moveDirection;
+    private Animator    anim;
+
+    // A* state
+    private List<Vector2> _path;
+    private int            _pathIndex;
+    private float          _pathTimer;
 
     [Header("Interfaz")]
     [SerializeField] private Slider healthBarSlider;
 
     private bool isDead = false;
-    public bool IsDead()
-    {
-        return isDead;
-    }
+    public bool IsDead() => isDead;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        currentHealth = maxHealth; // Inicializamos la salud
+        currentHealth = maxHealth;
         anim = GetComponent<Animator>();
-
-        // Buscamos la barra de vida en los hijos para evitar el NullReferenceException
         if (healthBarSlider == null)
-        {
             healthBarSlider = GetComponentInChildren<Slider>();
-        }
     }
 
     void Start()
     {
-        UpdateVisualHealthBar(); // Ponemos la barra al m·ximo al empezar
-
+        UpdateVisualHealthBar();
         GameObject player = GameObject.Find("Player");
         if (player != null)
         {
-            target = player.transform;
+            target       = player.transform;
+            playerScript = player.GetComponent<Player>();
         }
+    }
+
+    private float FuzzySpeed()
+    {
+        float h = (float)currentHealth / maxHealth;
+        float p = playerScript != null
+            ? (float)playerScript.currentHealth / playerScript.maxHealth
+            : 1f;
+
+        float muSano     = h;       float muHerido   = 1f - h;
+        float muSanoPJ   = p;       float muMuertoPJ = 1f - p;
+
+        float wCauteloso = Mathf.Min(muHerido, muSanoPJ);
+        float wNormal    = Mathf.Min(muHerido, muMuertoPJ);
+        float wAgresivo  = Mathf.Min(muSano,   muSanoPJ);
+        float wFrenetico = Mathf.Min(muSano,   muMuertoPJ);
+
+        float total = wCauteloso + wNormal + wAgresivo + wFrenetico;
+        if (total < 0.001f) return moveSpeed;
+
+        float speed = (wCauteloso  * speedCauteloso +
+                       wNormal     * speedNormal    +
+                       wAgresivo   * speedAgresivo  +
+                       wFrenetico  * speedFren√©tico) / total;
+
+        if (EnemyBlackboard.PlayerIsStunned) speed *= stunnedBonus;
+        return speed;
     }
 
     void Update()
     {
-        if (isDead) return; 
+        if (isDead) return;
+        if (target == null || !target.gameObject.activeInHierarchy) { moveDirection = Vector2.zero; return; }
 
-        if (target != null && target.gameObject.activeInHierarchy)
+        EnemyBlackboard.PlayerPosition    = target.position;
+        if (playerScript != null)
+            EnemyBlackboard.PlayerHealthRatio = (float)playerScript.currentHealth / playerScript.maxHealth;
+
+        _pathTimer -= Time.deltaTime;
+        if (_pathTimer <= 0f)
         {
-            Vector3 direction = (target.position - transform.position).normalized;
-            moveDirection = direction;
+            _pathTimer = pathUpdateInterval;
+            if (PathfindingGrid.Instance != null)
+            {
+                _path      = PathfindingGrid.Instance.FindPath(transform.position, target.position);
+                _pathIndex = 0;
+            }
+        }
+
+        if (_path != null && _pathIndex < _path.Count)
+        {
+            Vector2 wp = _path[_pathIndex];
+            moveDirection = (wp - (Vector2)transform.position).normalized;
+            if (Vector2.Distance(transform.position, wp) < nodeReachThreshold)
+                _pathIndex++;
         }
         else
         {
-            moveDirection = Vector2.zero;
+            moveDirection = ((Vector2)target.position - (Vector2)transform.position).normalized;
         }
-
     }
+
+    private const float nodeReachThreshold = 0.35f;
 
     private void FixedUpdate()
     {
         if (isDead) return;
 
         if (target != null && target.gameObject.activeInHierarchy)
-        {
-            rb.linearVelocity = new Vector2(moveDirection.x, moveDirection.y) * moveSpeed;
-        }
+            rb.linearVelocity = moveDirection * FuzzySpeed();
         else
-        {
             rb.linearVelocity = Vector2.zero;
-        }
     }
 
     public void TakeDamage(int damageAmount)
     {
         if (isDead) return;
 
-        health -= damageAmount;
         currentHealth -= damageAmount;
         UpdateVisualHealthBar();
-
         anim.SetTrigger("Hit");
 
-        if (health <= 0)
+        if (currentHealth <= 0)
         {
             isDead = true;
-
             anim.SetBool("isDead", true);
-
             rb.linearVelocity = Vector2.zero;
             GetComponent<Collider2D>().enabled = false;
-
-            if (target != null)
-            {
-                Player playerScript = target.GetComponent<Player>();
-                if (playerScript != null)
-                {
-                    playerScript.AddPoints(pointsToGive);
-                }
-            }
-
+            playerScript?.AddPoints(pointsToGive);
+            LevelManager.Instance?.OnEnemyKilled();
             Destroy(gameObject, 1.2f);
         }
     }
 
-    // FunciÛn interna para actualizar el Slider sin necesidad de otra clase
     private void UpdateVisualHealthBar()
     {
         if (healthBarSlider != null)
-        {
-            // Convertimos a float para que la divisiÛn sea decimal
             healthBarSlider.value = (float)currentHealth / (float)maxHealth;
-        }
     }
 
     private void OnCollisionStay2D(Collision2D collision)
@@ -129,14 +166,10 @@ public class MeleeHunter : MonoBehaviour
 
         if (collision.gameObject.CompareTag("Player"))
         {
-            if (Time.time >= nextDamageTime)
+            if (Time.time >= nextDamageTime && playerScript != null)
             {
-                Player playerScript = collision.gameObject.GetComponent<Player>();
-                if (playerScript != null)
-                {
-                    playerScript.TakeDamage(damageToPlayer);
-                    nextDamageTime = Time.time + damageRate;
-                }
+                playerScript.TakeDamage(damageToPlayer);
+                nextDamageTime = Time.time + damageRate;
             }
         }
     }

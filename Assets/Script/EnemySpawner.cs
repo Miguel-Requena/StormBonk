@@ -1,50 +1,53 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Configuración del Spawner")]
+    [Header("Prefab de enemigo")]
     public GameObject enemyPrefab;
-    public float spawnRate = 1.5f;     // Cada cuántos segundos aparece un enemigo
-    public int maxEnemies = 30;        // Límite máximo de enemigos en pantalla
-    public float spawnRadius = 10f;    // Distancia a la que aparecen del jugador
 
-    private float nextSpawnTime = 0f;
-    private Transform player;
+    [Header("Ritmo de spawn")]
+    public float spawnRate  = 3f;   // LevelManager lo sobreescribe por oleada
+    public int   maxEnemies = 15;   // cap inicial; mÃ¡s bajo = mÃ¡s manejable
 
-    void Start()
+    [Header("Posicionamiento en el tilemap")]
+    [Tooltip("Distancia mÃ­nima al jugador para que aparezca un enemigo")]
+    public float minSpawnDistance = 7f;
+    [Tooltip("Distancia mÃ¡xima al jugador para que aparezca un enemigo")]
+    public float maxSpawnDistance = 14f;
+
+    private float     _nextSpawnTime;
+    private Transform _player;
+
+    private void Start()
     {
-        // Buscamos al jugador al inicio
         GameObject p = GameObject.Find("Player");
-        if (p != null)
-        {
-            player = p.transform;
-        }
+        if (p != null) _player = p.transform;
     }
 
-    void Update()
+    private void Update()
     {
-        if (player == null) return;
+        if (_player == null || enemyPrefab == null) return;
+        if (Time.time < _nextSpawnTime) return;
+        if (GameObject.FindGameObjectsWithTag("Enemy").Length >= maxEnemies) return;
 
-        // Contamos cuántos enemigos hay activos usando su Tag
-        int currentEnemies = GameObject.FindGameObjectsWithTag("Enemy").Length;
-
-        // Si toca spawnear y no hemos superado el límite
-        if (Time.time >= nextSpawnTime && currentEnemies < maxEnemies)
-        {
-            SpawnEnemy();
-            nextSpawnTime = Time.time + spawnRate;
-        }
+        Instantiate(enemyPrefab, GetSpawnPosition(), Quaternion.identity);
+        _nextSpawnTime = Time.time + spawnRate;
     }
 
-    void SpawnEnemy()
+    private Vector2 GetSpawnPosition()
     {
-        // Genera una dirección aleatoria en un círculo
-        Vector2 randomDirection = Random.insideUnitCircle.normalized;
+        // Prioridad: nodo walkable del PathfindingGrid dentro del rango de distancia
+        if (PathfindingGrid.Instance != null)
+        {
+            List<Vector2> candidates = PathfindingGrid.Instance.GetSpawnCandidates(
+                _player.position, minSpawnDistance, maxSpawnDistance);
 
-        // Calculamos la posición final (posición del jugador + la dirección * el radio)
-        Vector2 spawnPosition = (Vector2)player.position + (randomDirection * spawnRadius);
+            if (candidates != null && candidates.Count > 0)
+                return candidates[Random.Range(0, candidates.Count)];
+        }
 
-        // Creamos al enemigo
-        Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+        // Fallback sin grid: direcciÃ³n aleatoria a distancia mÃ­nima
+        return (Vector2)_player.position + Random.insideUnitCircle.normalized * minSpawnDistance;
     }
 }
