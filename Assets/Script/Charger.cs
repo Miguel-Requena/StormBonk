@@ -2,26 +2,23 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// ┌─────────────────────────────────────────────────────────────────┐
-// │  HFSM (Hierarchical Finite State Machine)                       │
-// │                                                                 │
-// │  Nivel 1 (TopState)  →  Alive  |  Dead                         │
-// │  Nivel 2 (AliveState)→  Wander → Approach → Prepare            │
-// │                          └─ Charge ──────────── Stunned ─┘      │
-// │                                                                 │
-// │  El Blackboard decide si el Charger tiene "turno" de embestir. │
-// └─────────────────────────────────────────────────────────────────┘
+// HFSM (Hierarchical Finite State Machine)
+//
+// Nivel 1 (TopState)  →  Alive  |  Dead
+// Nivel 2 (AliveState)→  Wander  →  Approach   →  Prepare
+//                         └─ Charge ------- Stunned ─┘
+// El Blackboard decide si el Charger tiene "turno" de embestir.
 [RequireComponent(typeof(Rigidbody2D))]
 public class Charger : MonoBehaviour
 {
-    // ── Estados ──────────────────────────────────────────────────────────────
+    // Estados
     private enum TopState   { Alive, Dead }
     private enum AliveState { Wander, Approach, Prepare, Charge, Stunned }
 
     private TopState   _top   = TopState.Alive;
     private AliveState _alive = AliveState.Approach;
 
-    // ── Inspector ─────────────────────────────────────────────────────────────
+    // Inspector
     [Header("Estadísticas")]
     public int   maxHealth      = 40;
     public int   damageToPlayer = 15;
@@ -48,7 +45,7 @@ public class Charger : MonoBehaviour
     [Header("Pathfinding A*")]
     public float pathUpdateInterval = 0.3f;
 
-    // ── Privados ──────────────────────────────────────────────────────────────
+    // Privados
     private int   _currentHealth;
     private float _stateTimer;
 
@@ -68,7 +65,7 @@ public class Charger : MonoBehaviour
     private int            _pathIndex;
     private float          _pathTimer;
 
-    // ── Unity callbacks ───────────────────────────────────────────────────────
+    // Unity callbacks
     private void Awake() => _rb = GetComponent<Rigidbody2D>();
 
     private void Start()
@@ -90,7 +87,7 @@ public class Charger : MonoBehaviour
         }
     }
 
-    // ── Nivel 1: Alive ────────────────────────────────────────────────────────
+    // Nivel 1: Alive
     private void UpdateAlive()
     {
         if (_player == null || !_player.gameObject.activeInHierarchy) { _rb.linearVelocity = Vector2.zero; return; }
@@ -110,7 +107,7 @@ public class Charger : MonoBehaviour
         }
     }
 
-    // ── Nivel 2: sub-estados ──────────────────────────────────────────────────
+    // Nivel 2: sub-estados
 
     private void UpdateWander(float dist)
     {
@@ -152,7 +149,7 @@ public class Charger : MonoBehaviour
         if (_stateTimer <= 0f) EnterAlive(AliveState.Approach);
     }
 
-    // ── Transiciones ──────────────────────────────────────────────────────────
+    // Transiciones
     private void EnterAlive(AliveState next)
     {
         if (next != AliveState.Charge && next != AliveState.Stunned && _chargeGranted)
@@ -191,7 +188,7 @@ public class Charger : MonoBehaviour
         }
     }
 
-    // ── Pathfinding A* ────────────────────────────────────────────────────────
+    // Pathfinding A*
     private void FollowPath(Vector2 destination, float speed)
     {
         _pathTimer -= Time.deltaTime;
@@ -217,7 +214,7 @@ public class Charger : MonoBehaviour
         _rb.linearVelocity = dir * speed;
     }
 
-    // ── Colisiones ────────────────────────────────────────────────────────────
+    // Colisiones
     private void OnCollisionEnter2D(Collision2D col)
     {
         if (_alive != AliveState.Charge) return;
@@ -236,7 +233,7 @@ public class Charger : MonoBehaviour
             EnterAlive(AliveState.Stunned);
     }
 
-    // ── Daño ─────────────────────────────────────────────────────────────────
+    // Daño
     public void TakeDamage(int amount)
     {
         if (_top == TopState.Dead) return;

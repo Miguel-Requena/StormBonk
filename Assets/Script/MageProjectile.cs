@@ -1,15 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Proyectil 2D del mago enemigo.
-/// 
-/// SETUP en Unity:
-///   - Crea un sprite (círculo morado/azul, lo que tengas)
-///   - Añade Rigidbody2D (Gravity Scale = 0, Is Kinematic = true)
-///   - Añade CircleCollider2D marcado como IS TRIGGER
-///   - Añade este script
-///   - Guárdalo como prefab y asígnalo en MageEnemy → Projectile Prefab
-/// </summary>
 public class MageProjectile : MonoBehaviour
 {
     [Header("Proyectil")]
@@ -20,7 +10,7 @@ public class MageProjectile : MonoBehaviour
     private int _damage;
     private bool _ready;
 
-    /// <summary>Llamado por MageEnemy al instanciar el proyectil.</summary>
+    // Llamado por MageEnemy al instanciar el proyectil.
     public void Init(Vector2 direction, int damage)
     {
         _direction = direction.normalized;

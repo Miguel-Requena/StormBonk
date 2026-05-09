@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Coloca este componente en un GameObject vacío centrado en el nivel.
-// Configura worldSize para cubrir toda el área de juego y obstacleMask con la capa de paredes.
 public class PathfindingGrid : MonoBehaviour
 {
     public static PathfindingGrid Instance { get; private set; }
@@ -39,7 +37,7 @@ public class PathfindingGrid : MonoBehaviour
         }
     }
 
-    // ── API pública ──────────────────────────────────────────────────────────
+    // API pública
 
     // Devuelve nodos walkable dentro del rango de distancia dado — usado por el spawner.
     public List<Vector2> GetSpawnCandidates(Vector2 center, float minDist, float maxDist)
@@ -102,7 +100,7 @@ public class PathfindingGrid : MonoBehaviour
         return null;
     }
 
-    // ── Helpers privados ─────────────────────────────────────────────────────
+    // Helpers privados
 
     private Node WorldToNode(Vector2 wp)
     {
@@ -171,7 +169,7 @@ public class PathfindingGrid : MonoBehaviour
     }
 #endif
 
-    // ── Clase nodo ───────────────────────────────────────────────────────────
+    // Clase nodo
     public class Node
     {
         public readonly bool    Walkable;

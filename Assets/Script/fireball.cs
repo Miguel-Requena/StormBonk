@@ -51,15 +51,15 @@ public class Fireball : MonoBehaviour
     {
         if (!collision.CompareTag("Enemy")) return;
 
-        // ── MeleeHunter ────────────────────────────────────────────────────────
+        // MeleeHunter
         MeleeHunter melee = collision.GetComponent<MeleeHunter>();
         if (melee != null) { melee.TakeDamage(damage); Destroy(gameObject); return; }
 
-        // ── MageEnemy ──────────────────────────────────────────────────────────
+        // MageEnemy
         MageEnemy mage = collision.GetComponent<MageEnemy>();
         if (mage != null) { mage.TakeDamage(damage); Destroy(gameObject); return; }
 
-        // ── Charger ────────────────────────────────────────────────────────────
+        // Charger
         Charger charger = collision.GetComponent<Charger>();
         if (charger != null) { charger.TakeDamage(damage); Destroy(gameObject); return; }
     }

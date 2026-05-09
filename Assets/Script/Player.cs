@@ -29,7 +29,7 @@ public class Player : MonoBehaviour
     private Animator    anim;
     private Vector2     moveDirection;
 
-    // ── Stun ─────────────────────────────────────────────────────────────────
+    // Stun
     private float _stunTimer;
     public  bool  IsStunned => _stunTimer > 0f;
 
@@ -47,7 +47,7 @@ public class Player : MonoBehaviour
         if (_stunTimer > 0f) _stunTimer -= Time.deltaTime;
         if (IsStunned) return;
 
-        // ── Movimiento ────────────────────────────────────────────────────────
+        // Movimiento
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveY = Input.GetAxisRaw("Vertical");
         moveDirection = new Vector2(moveX, moveY).normalized;
@@ -57,7 +57,7 @@ public class Player : MonoBehaviour
         if      (moveX > 0) transform.localScale = new Vector3( 3f, 3f, 1);
         else if (moveX < 0) transform.localScale = new Vector3(-3f, 3f, 1);
 
-        // ── Disparo automático (bola de fuego) ────────────────────────────────
+        // Disparo automático (bola de fuego)
         if (Time.time >= _nextFireTime && fireballPrefab != null)
         {
             Transform target = GetClosestEnemy();
@@ -68,7 +68,7 @@ public class Player : MonoBehaviour
             }
         }
 
-        // ── Pulso Arcano automático (defensivo) ───────────────────────────────
+        // Pulso Arcano automático (defensivo)
         if (Time.time >= _nextPulseTime && CountEnemiesInPulseRange() >= minEnemiesForPulse)
         {
             PerformPulse();
@@ -83,7 +83,7 @@ public class Player : MonoBehaviour
         rb.linearVelocity = moveDirection * speed;
     }
 
-    // ── Disparo ───────────────────────────────────────────────────────────────
+    // Disparo
     void ShootFireball(Transform target)
     {
         Vector2 toTarget = ((Vector2)target.position - (Vector2)transform.position);
@@ -97,7 +97,7 @@ public class Player : MonoBehaviour
         }
     }
 
-    // ── Pulso Arcano ──────────────────────────────────────────────────────────
+    // Pulso Arcano
     int CountEnemiesInPulseRange()
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, pulseRadius);
@@ -126,7 +126,7 @@ public class Player : MonoBehaviour
         }
     }
 
-    // ── Progresión por oleada ─────────────────────────────────────────────────
+    // Progresión por oleada
     public void ApplyWaveProgression(int wave, int level)
     {
         fireRate        = Mathf.Max(0.25f, fireRate * 0.90f);
@@ -146,7 +146,7 @@ public class Player : MonoBehaviour
         }
     }
 
-    // ── Daño y muerte ─────────────────────────────────────────────────────────
+    // Daño y muerte
     public void TakeDamage(int damage)
     {
         if (isDead) return;
@@ -171,7 +171,7 @@ public class Player : MonoBehaviour
         GetComponent<Collider2D>().enabled = false;
     }
 
-    // ── Stun ─────────────────────────────────────────────────────────────────
+    // Stun
     public void Stun(float duration)
     {
         if (isDead) return;
@@ -180,14 +180,14 @@ public class Player : MonoBehaviour
         Debug.Log("[Player] ¡Stuneado por " + duration + "s!");
     }
 
-    // ── Puntos ────────────────────────────────────────────────────────────────
+    // Puntos
     public void AddPoints(int pointsToAdd)
     {
         score += pointsToAdd;
         Debug.Log("¡Puntos ganados! Puntuación total: " + score);
     }
 
-    // ── Enemigo más cercano ───────────────────────────────────────────────────
+    // Enemigo más cercano
     Transform GetClosestEnemy()
     {
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");

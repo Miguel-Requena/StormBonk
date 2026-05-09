@@ -3,7 +3,7 @@ using UnityEngine;
 // Pizarra compartida (Blackboard). No es MonoBehaviour — todos los enemigos la leen/escriben directamente.
 public static class EnemyBlackboard
 {
-    // ── Información del jugador ──────────────────────────────────────────────
+    // Información del jugador
     public static Vector2 PlayerPosition    { get; set; }
     public static float   PlayerHealthRatio { get; set; } = 1f;
     public static bool    PlayerIsStunned   { get; private set; }
@@ -22,7 +22,7 @@ public static class EnemyBlackboard
             PlayerIsStunned = false;
     }
 
-    // ── Coordinación de embestidas (solo 1 Charger a la vez) ────────────────
+    // Coordinación de embestidas (solo 1 Charger a la vez)
     public static int MaxSimultaneousCharges = 1;
     private static int _activeCharges;
 
